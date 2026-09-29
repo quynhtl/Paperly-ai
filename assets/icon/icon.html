@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset="utf-8">
+<!--
+  The Paperly AI plugin icon. build-icons.sh screenshots this with headless
+  Chrome, once per size.
+
+  Query: ?size=<px>&z=<zoom>&cx=<0..1>&cy=<0..1>
+
+  logo.png is a finished emblem -- crown, circuit ring, "A.I." in her eyes, an
+  INTELLIGENCE ribbon -- on an opaque navy field. It is used as given; nothing
+  here draws on top of it. In particular there is no separate AI badge: the
+  artwork says AI twice already, and a third would be clutter.
+
+  z and cx/cy exist because one artwork cannot serve 20px and 96px. See
+  README.md, "One logo, two crops".
+
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden }
+  #stage { width: 1024px; height: 1024px; position: relative; transform-origin: top left }
+</style>
+<div id="stage"></div>
+<script>
+const q    = new URLSearchParams(location.search);
+const SIZE = +(q.get("size") || 96);
+const Z    = +(q.get("z") || 1);      // 1 = the whole emblem
+const CX   = +(q.get("cx") || 0.5);   // focus point, in fractions of the source
+const CY   = +(q.get("cy") || 0.5);
+const SIDE = 1024;
+const stage = document.getElementById("stage");
+stage.style.transform = `scale(${SIZE / 1024})`;
+
+// A superellipse, not a border-radius, to match the application icon and the
+// system icons it sits beside.
+function squircle(side, n = 5) {
+  const r = side / 2, pts = [];
+  for (let i = 0; i <= 360; i++) {
+    const t = (i / 360) * 2 * Math.PI, c = Math.cos(t), s = Math.sin(t);
+    pts.push(
+      (r + Math.sign(c) * Math.pow(Math.abs(c), 2 / n) * r).toFixed(2) + "," +
+      (r + Math.sign(s) * Math.pow(Math.abs(s), 2 / n) * r).toFixed(2));
+  }
+  return `path("M${pts.join(" L")} Z")`;
+}
+
+const plate = document.createElement("div");
+Object.assign(plate.style, {
+  position: "absolute", inset: "0", clipPath: squircle(SIDE), overflow: "hidden",
+  // Only ever seen if the artwork stops covering; the navy matches its field.
+  background: "#1B2340",
+});
+stage.appendChild(plate);
+
+const img = new Image();
+img.onload = () => {
+  // Cover the square first -- the source is 992x1024, not square -- then zoom
+  // about the focus point.
+  const base = Math.max(SIDE / img.width, SIDE / img.height);
+  const s = base * Z, w = img.width * s, h = img.height * s;
+  Object.assign(img.style, {
+    position: "absolute", width: w + "px", height: h + "px",
+    left: (SIDE / 2 - w * CX) + "px", top: (SIDE / 2 - h * CY) + "px",
+  });
+  plate.appendChild(img);
+
+  // A hairline, so the tile still has an edge on a dark toolbar.
+  const edge = document.createElement("div");
+  Object.assign(edge.style, {
+    position: "absolute", inset: "0", clipPath: squircle(SIDE),
+    boxShadow: `inset 0 0 0 ${Math.max(1, SIDE * 0.005)}px rgba(255,255,255,.10)`,
+  });
+  plate.appendChild(edge);
+  document.title = "ready";
+};
+img.src = "logo.png";
+</script>

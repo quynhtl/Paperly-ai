@@ -1,0 +1,269 @@
+<!doctype html>
+<meta charset="utf-8">
+<!--
+  The floating bot's face. build-icons.sh screenshots this once, as a strip of
+  three blink frames; floatingBot.ts steps between them with background-position.
+
+  Query: ?size=<px>&sheet=1   -- the three-frame strip the plugin ships
+         ?size=<px>&frame=<0|1|2>  -- one frame on its own, for looking at
+
+  face.png is a finished drawing -- pink hair, cat-ear clips, big eyes -- on a
+  near-black field. Three things are done to it here, and nothing is redrawn.
+
+  1. The field is cut away, so what ships is her head on transparency. The
+     bubble behind her is CSS, which is the only way it can be translucent,
+     drift its highlight and answer the panel's state. A plain flood fill would
+     take her linework with it -- her outline is the same black as the field and
+     touches it all the way round -- so the fill is run and then *eroded*: the
+     ring of field within ERODE px of her is handed back, and that ring is
+     exactly her outline.
+
+  2. She is fitted to the circle rather than to the square. Fitting to the
+     square is what the first version did, and it put her widest point -- the
+     hair at y=600 of 778 -- where the circle has already narrowed to 68% of its
+     width, so the hair was sheared off on both sides while the top of the disc
+     sat empty. Measuring her own box and centring that fixes both ends at once.
+
+  3. Her eyes are shut by the frame's `f`. Not a lid laid over the art: only the
+     pixels the eye actually occupies are repainted, found by growing out from a
+     seed over everything that is not skin, fenced inside the eye's own ellipse.
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden }
+  #stage { position: relative; transform-origin: top left }
+</style>
+<div id="stage"></div>
+<script>
+const q    = new URLSearchParams(location.search);
+const SIZE = +(q.get("size") || 192);
+const SIDE = 1024;
+
+/**
+ * The blink.
+ *
+ * `f` is how far down its own height the lid has travelled. `shut` says what
+ * happens below the lid: half-way it is left as drawn, so the bottom of the
+ * pupil still shows and the frame reads as an in-between; shut it is skin, so
+ * all that is left is the lash line -- which is what a shut anime eye is.
+ * 0.62 and not 1.0 because the lid meets its opposite lash around two thirds
+ * down, and at 1.0 the line lands on the eye's bottom edge and half of it falls
+ * outside the mask.
+ */
+const BLINK = [
+  { f: 0,    shut: false },
+  { f: 0.45, shut: false },
+  { f: 0.62, shut: true  },
+];
+const FRAMES = q.get("sheet") === "1"
+  ? BLINK
+  : [BLINK[Math.min(2, Math.max(0, +(q.get("frame") || 0)))]];
+
+const stage = document.getElementById("stage");
+stage.style.width = `${SIDE * FRAMES.length}px`;
+stage.style.height = `${SIDE}px`;
+stage.style.transform = `scale(${SIZE / SIDE})`;
+
+// Anything this dark is the field she was drawn on -- and so is her outline,
+// which is why the flood is eroded rather than trusted.
+const FIELD_MAX = 150;
+// Her outline, in source pixels. Measured off the drawing: the line is 6-9px
+// through most of its length, so 8 keeps it whole without pulling in the field.
+const ERODE = 8;
+
+// Fitted to her own box, not to the drawing's. 0.92 leaves the bubble a rim of
+// glass to show around her; 0.52 drops her a little below the middle, which is
+// where the ahoge clears the top and the collar still reaches the bottom.
+const FILL = 0.92;
+const CENTRE_Y = 0.52;
+
+const SKIN = [250, 239, 231];
+const SKIN_TOL = 30;
+const LID = [18, 14, 20];
+
+// Read off a 2x crop of her left eye on face.png (728x778) and mirrored about
+// the face's axis, the midpoint of the two pupils at x=358. Held as fractions
+// so the numbers survive the drawing being re-exported at another size.
+const EYES = [
+  { x: 0.3255, y: 0.6170, rx: 0.0962, ry: 0.0977 },
+  { x: 0.6580, y: 0.6170, rx: 0.0962, ry: 0.0977 },
+];
+
+/** The near-black field, flooded in from the border so her pupils are spared. */
+function fieldMask(px, W, H) {
+  const dark = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const o = i * 4;
+    if (px[o] + px[o + 1] + px[o + 2] <= FIELD_MAX) { dark[i] = 1; }
+  }
+  const mask = new Uint8Array(W * H);
+  const stack = [];
+  const push = (x, y) => {
+    const i = x + y * W;
+    if (dark[i] && !mask[i]) { mask[i] = 1; stack.push(i); }
+  };
+  for (let x = 0; x < W; x++) { push(x, 0); push(x, H - 1); }
+  for (let y = 0; y < H; y++) { push(0, y); push(W - 1, y); }
+  for (let k = 0; k < stack.length; k++) {
+    const i = stack[k], x = i % W, y = (i - x) / W;
+    if (x > 0) { push(x - 1, y); }
+    if (x < W - 1) { push(x + 1, y); }
+    if (y > 0) { push(x, y - 1); }
+    if (y < H - 1) { push(x, y + 1); }
+  }
+  return mask;
+}
+
+/** Hands back the `r` px of field nearest her, which is the outline she is drawn with. */
+function erode(mask, W, H, r) {
+  let cur = mask;
+  for (let pass = 0; pass < r; pass++) {
+    const next = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = x + y * W;
+        if (!cur[i]) { continue; }
+        // A border pixel has no outside neighbour to lose to, so it stays.
+        if (x === 0 || y === 0 || x === W - 1 || y === H - 1) { next[i] = 1; continue; }
+        if (cur[i - 1] && cur[i + 1] && cur[i - W] && cur[i + W]) { next[i] = 1; }
+      }
+    }
+    cur = next;
+  }
+  return cur;
+}
+
+/**
+ * The pixels one eye occupies.
+ *
+ * Grown from a seed over everything that is not skin, and fenced inside the
+ * eye's own ellipse. The fence is what makes this safe: her lashes run into the
+ * black outline of her hair, and both are the same black, so an unfenced fill
+ * follows the outline out and repaints her fringe -- measured, it took 17,000
+ * pixels instead of 15,000 and put two pale rectangles across her forehead.
+ */
+function eyeMask(px, W, H, eye) {
+  const cx = eye.x * W, cy = eye.y * H, rx = eye.rx * W, ry = eye.ry * H;
+  const isSkin = (i) => {
+    const o = i * 4;
+    return Math.abs(px[o] - SKIN[0]) + Math.abs(px[o + 1] - SKIN[1]) +
+           Math.abs(px[o + 2] - SKIN[2]) < SKIN_TOL;
+  };
+  const inside = (x, y) => {
+    const dx = (x - cx) / rx, dy = (y - cy) / ry;
+    return dx * dx + dy * dy <= 1 && x >= 0 && y >= 0 && x < W && y < H;
+  };
+  // The centre of the ellipse can land on a highlight, so start from the first
+  // thing below it that is not skin.
+  let seed = -1;
+  for (let y = Math.round(cy) - 10; y < Math.round(cy) + 40 && seed < 0; y++) {
+    const i = Math.round(cx) + y * W;
+    if (inside(Math.round(cx), y) && !isSkin(i)) { seed = i; }
+  }
+  if (seed < 0) { return null; }
+
+  const mask = new Uint8Array(W * H);
+  mask[seed] = 1;
+  const stack = [seed];
+  for (let k = 0; k < stack.length; k++) {
+    const i = stack[k], x = i % W, y = (i - x) / W;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (!inside(nx, ny)) { continue; }
+      const j = nx + ny * W;
+      if (mask[j] || isSkin(j)) { continue; }
+      mask[j] = 1;
+      stack.push(j);
+    }
+  }
+  return mask;
+}
+
+/**
+ * Brings one eye's lid down to `f`.
+ *
+ * Column by column, so the lid takes the eye's own curve and lands as an arc
+ * rather than as a straight bar. The line is drawn thicker when shut, because
+ * shut it is the only thing left of the eye and a hairline reads as a smudge.
+ */
+function shutEye(px, W, H, mask, f, shut) {
+  if (!mask || f <= 0) { return; }
+  for (let x = 0; x < W; x++) {
+    let top = -1, bottom = -1;
+    for (let y = 0; y < H; y++) {
+      if (mask[x + y * W]) { if (top < 0) { top = y; } bottom = y; }
+    }
+    if (top < 0 || bottom - top < 2) { continue; }
+    const span = bottom - top;
+    const edge = top + span * f;
+    const lid = Math.max(shut ? 3 : 2.5, span * (shut ? 0.22 : 0.14));
+    for (let y = top; y <= bottom; y++) {
+      const o = (x + y * W) * 4;
+      if (Math.abs(y - edge) <= lid / 2) {
+        px[o] = LID[0]; px[o + 1] = LID[1]; px[o + 2] = LID[2];
+      } else if (y < edge || shut) {
+        px[o] = SKIN[0]; px[o + 1] = SKIN[1]; px[o + 2] = SKIN[2];
+      }
+    }
+  }
+}
+
+const img = new Image();
+img.onload = () => {
+  const W = img.width, H = img.height;
+
+  const base = document.createElement("canvas");
+  base.width = W;
+  base.height = H;
+  const bctx = base.getContext("2d", { willReadFrequently: true });
+  bctx.drawImage(img, 0, 0);
+  const source = bctx.getImageData(0, 0, W, H);
+
+  const field = erode(fieldMask(source.data, W, H), W, H, ERODE);
+
+  // Her box, measured once off the cut-out and reused for every frame: the
+  // blink must not shift her, and only the eyes differ between frames anyway.
+  let x0 = W, x1 = -1, y0 = H, y1 = -1;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (field[x + y * W]) { continue; }
+      if (x < x0) { x0 = x; }
+      if (x > x1) { x1 = x; }
+      if (y < y0) { y0 = y; }
+      if (y > y1) { y1 = y; }
+    }
+  }
+  const headW = x1 - x0 + 1, headH = y1 - y0 + 1;
+  const s = (FILL * SIDE) / headW;
+  const ox = SIDE / 2 - (x0 + headW / 2) * s;
+  const oy = CENTRE_Y * SIDE - (y0 + headH / 2) * s;
+
+  FRAMES.forEach((frame, i) => {
+    const work = document.createElement("canvas");
+    work.width = W;
+    work.height = H;
+    const wctx = work.getContext("2d", { willReadFrequently: true });
+    const data = new ImageData(new Uint8ClampedArray(source.data), W, H);
+    const px = data.data;
+    if (frame.f > 0) {
+      for (const eye of EYES) {
+        shutEye(px, W, H, eyeMask(px, W, H, eye), frame.f, frame.shut);
+      }
+    }
+    for (let k = 0; k < W * H; k++) {
+      if (field[k]) { px[k * 4 + 3] = 0; }
+    }
+    wctx.putImageData(data, 0, 0);
+
+    const out = document.createElement("canvas");
+    out.width = SIDE;
+    out.height = SIDE;
+    const ctx = out.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(work, ox, oy, W * s, H * s);
+    Object.assign(out.style, { position: "absolute", top: "0", left: `${i * SIDE}px` });
+    stage.appendChild(out);
+  });
+  document.title = "ready";
+};
+img.src = "face.png";
+</script>

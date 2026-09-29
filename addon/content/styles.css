@@ -1,0 +1,860 @@
+/* Paperly AI styles */
+
+/* ─── CSS Custom Properties ──────────────────────────────────────── */
+
+:root {
+  --webai-transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --webai-transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --webai-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --webai-transition-spring: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  --webai-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --webai-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --webai-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --webai-shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  --webai-radius-sm: 6px;
+  --webai-radius-md: 10px;
+  --webai-radius-lg: 14px;
+  --webai-radius-xl: 20px;
+  --webai-radius-full: 9999px;
+}
+
+/* ─── Keyframe Animations ────────────────────────────────────────── */
+
+@keyframes webai-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes webai-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes webai-slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes webai-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes webai-scale-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.92); }
+}
+
+@keyframes webai-expand {
+  from { max-height: 0; opacity: 0; overflow: hidden; }
+  to   { max-height: 500px; opacity: 1; overflow: hidden; }
+}
+
+@keyframes webai-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes webai-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes webai-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes webai-bounce-in {
+  0%   { opacity: 0; transform: scale(0.85); }
+  60%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Core Layout ────────────────────────────────────────────────── */
+
+.ai-assistant-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.zotero-webai-shell {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+  transition: background var(--webai-transition-slow),
+              color var(--webai-transition-slow);
+}
+
+.zotero-webai-shell-header {
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  transition: background var(--webai-transition-normal),
+              border-color var(--webai-transition-normal);
+}
+
+.zotero-webai-shell-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ─── Layout Modes ───────────────────────────────────────────────── */
+
+.zotero-webai-workspace {
+  box-sizing: border-box;
+  min-height: 0;
+  min-width: 0;
+}
+
+.zotero-webai-web,
+.zotero-webai-web-shell,
+.zotero-webai-toolbar,
+.zotero-webai-chat,
+.zotero-webai-composer {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.zotero-webai-workspace[data-layout="stacked"] {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Whichever surface is showing is the only one, so it fills. These used to pin
+   the web frame to a fixed top half (flex: 0 0 auto) with the transcript taking
+   the rest; the `!important` meant it also beat the component's inline style. */
+.zotero-webai-workspace[data-layout="stacked"] .zotero-webai-web,
+.zotero-webai-workspace[data-layout="stacked"] .zotero-webai-web-shell,
+.zotero-webai-workspace[data-layout="stacked"] .zotero-webai-chat {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+
+.zotero-webai-workspace[data-layout="compact"] {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  padding: 6px !important;
+}
+
+.zotero-webai-workspace[data-layout="compact"] .zotero-webai-web,
+.zotero-webai-workspace[data-layout="compact"] .zotero-webai-web-shell {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+.zotero-webai-workspace[data-layout="compact"] .zotero-webai-toolbar {
+  gap: 6px !important;
+  padding: 6px !important;
+}
+
+.zotero-webai-workspace[data-layout="compact"] .zotero-webai-service-bar,
+.zotero-webai-workspace[data-layout="compact"] .zotero-webai-toolbar-actions {
+  gap: 4px !important;
+}
+
+.zotero-webai-workspace[data-layout="compact"] .zotero-webai-chat {
+  flex: 1 1 auto !important;
+  min-height: 220px !important;
+}
+
+.zotero-webai-workspace[data-layout="compact"] .zotero-webai-composer {
+  min-height: 118px !important;
+  padding: 8px !important;
+}
+
+.zotero-webai-workspace--reader .zotero-webai-chat {
+  flex: 1 1 auto !important;
+}
+
+.zotero-webai-results-layout,
+.zotero-webai-transcript {
+  min-height: 0;
+  min-width: 0;
+}
+
+.zotero-webai-history {
+  scrollbar-width: thin;
+}
+
+.zotero-webai-composer-input {
+  min-width: 0;
+}
+
+/* ─── Selection Popup (existing) ─────────────────────────────────── */
+
+.ai-assistant-selection-popup {
+  font: inherit;
+}
+
+.ai-assistant-selection-popup .toolbar-button {
+  font: inherit;
+}
+
+/* ─── Reader Toolbar Button ──────────────────────────────────────── */
+
+.zotero-webai-reader-toolbar-button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 28px;
+  justify-content: center;
+  margin: 0;
+  min-width: 28px;
+  /* 2, not 4: the button stays 28px so it still lines up with Zotero's own
+     toolbarbuttons in this row, but the artwork inside it goes from 20 to 24.
+     The emblem carries its own margin, so at 20px the drawn part was smaller
+     than the neighbouring glyphs even though the box was larger. */
+  padding: 2px;
+  transition: background var(--webai-transition-fast),
+              transform var(--webai-transition-fast);
+}
+
+.zotero-webai-reader-toolbar-button:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.zotero-webai-reader-toolbar-button:active {
+  transform: scale(0.95);
+}
+
+.zotero-webai-reader-toolbar-button img {
+  display: block;
+  height: 24px;
+  width: 24px;
+}
+
+/* The author `display: inline-flex` above outranks the UA `[hidden]` rule, so
+   the hidden attribute needs an author rule to take effect. Without this,
+   `button.hidden = true` does nothing and the icon stays on library tabs. */
+.zotero-webai-reader-toolbar-button[hidden] {
+  display: none;
+}
+
+.zotero-webai-reader-tabbar-button {
+  /* #zotero-tabs-toolbar carries .zotero-toolbar, which sets
+     -moz-window-dragging: drag on macOS. Without no-drag on the button itself
+     the OS eats single clicks -- the same bug Zotero fixed for its own tab
+     scroll arrows. Scoped to the button so the rest of the title bar stays
+     draggable; never put this on the toolbar or #zotero-title-bar.
+     Size, hover and the 20px icon come from .zotero-webai-reader-toolbar-button
+     above: 28px matches Zotero's own toolbarbutton in this row, and keeping it
+     under the 36px row height leaves --height-of-fixed-components untouched. */
+  -moz-window-dragging: no-drag;
+  margin-inline: 4px;
+}
+
+/* ─── Mount Points ───────────────────────────────────────────────── */
+
+/* `clip`, not `hidden`: these are pure clip boxes and never scrollports.
+   `hidden` leaves them programmatically scrollable, so focus() and
+   scrollIntoView() silently push the panel header out of view with no scrollbar
+   to bring it back. `contain: layout paint` stays -- it isolates reflow. */
+.ai-assistant-pane-mount,
+.ai-assistant-pane {
+  contain: layout paint;
+  overflow: clip;
+}
+
+.ai-assistant-web-browser {
+  border: 0;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 360px;
+  min-width: 0;
+  width: 100%;
+}
+
+/* ─── Selection Floating Toolbar ─────────────────────────────────── */
+
+.zotero-webai-selection-toolbar {
+  align-items: center;
+  background: var(--webai-selection-toolbar-bg, #ffffff);
+  border: 1px solid var(--webai-selection-toolbar-border, rgba(0, 0, 0, 0.08));
+  border-radius: var(--webai-radius-lg);
+  box-shadow: var(--webai-shadow-lg);
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px 6px;
+  position: fixed;
+  z-index: 9999;
+  animation: webai-scale-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.zotero-webai-selection-toolbar[data-exiting="true"] {
+  animation: webai-scale-out 150ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.zotero-webai-selection-toolbar-btn {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--webai-radius-sm);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 4px;
+  height: 28px;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0 8px;
+  transition: background var(--webai-transition-fast),
+              transform var(--webai-transition-fast);
+  white-space: nowrap;
+}
+
+.zotero-webai-selection-toolbar-btn:hover {
+  background: var(--webai-toolbar-btn-hover, rgba(0, 0, 0, 0.06));
+}
+
+.zotero-webai-selection-toolbar-btn:active {
+  transform: scale(0.95);
+}
+
+.zotero-webai-selection-toolbar-btn svg {
+  flex-shrink: 0;
+  height: 14px;
+  width: 14px;
+}
+
+.zotero-webai-selection-toolbar-divider {
+  background: var(--webai-divider, rgba(0, 0, 0, 0.08));
+  height: 16px;
+  margin: 0 2px;
+  width: 1px;
+}
+
+/* ─── Model Selector Dropdown ────────────────────────────────────── */
+
+.zotero-webai-model-selector {
+  position: relative;
+  display: inline-flex;
+}
+
+.zotero-webai-model-selector-trigger {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--webai-model-border, rgba(0, 0, 0, 0.1));
+  border-radius: var(--webai-radius-sm);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  transition: all var(--webai-transition-fast);
+}
+
+.zotero-webai-model-selector-trigger:hover {
+  background: var(--webai-model-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--webai-model-border-hover, rgba(0, 0, 0, 0.2));
+}
+
+.zotero-webai-model-selector-dot {
+  border-radius: 50%;
+  display: inline-block;
+  height: 6px;
+  width: 6px;
+}
+
+.zotero-webai-model-selector-dot[data-status="online"] {
+  background: var(--webai-online, #22c55e);
+}
+
+.zotero-webai-model-selector-dot[data-status="offline"] {
+  background: var(--webai-offline, #ef4444);
+}
+
+.zotero-webai-model-selector-dot[data-status="loading"] {
+  background: #f59e0b;
+  animation: webai-pulse 1.5s ease-in-out infinite;
+}
+
+.zotero-webai-model-selector-dropdown {
+  animation: webai-slide-down 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  background: var(--webai-dropdown-bg, #ffffff);
+  border: 1px solid var(--webai-dropdown-border, rgba(0, 0, 0, 0.1));
+  border-radius: var(--webai-radius-md);
+  box-shadow: var(--webai-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  min-width: 200px;
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 100;
+}
+
+.zotero-webai-model-selector-search {
+  border: 0;
+  border-bottom: 1px solid var(--webai-dropdown-border, rgba(0, 0, 0, 0.08));
+  font-size: 12px;
+  outline: 0;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.zotero-webai-model-selector-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 4px;
+  scrollbar-width: thin;
+}
+
+.zotero-webai-model-selector-item {
+  align-items: center;
+  border-radius: var(--webai-radius-sm);
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  padding: 6px 8px;
+  transition: background var(--webai-transition-fast);
+}
+
+.zotero-webai-model-selector-item:hover {
+  background: var(--webai-model-hover, rgba(0, 0, 0, 0.04));
+}
+
+.zotero-webai-model-selector-item[data-selected="true"] {
+  background: var(--webai-model-selected, rgba(99, 102, 241, 0.1));
+  font-weight: 600;
+}
+
+/* ─── Theme Toggle Button ────────────────────────────────────────── */
+
+.zotero-webai-theme-toggle {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--webai-radius-sm);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  padding: 0;
+  transition: background var(--webai-transition-fast),
+              transform var(--webai-transition-fast);
+  width: 26px;
+}
+
+.zotero-webai-theme-toggle:hover {
+  background: var(--webai-toolbar-btn-hover, rgba(0, 0, 0, 0.06));
+}
+
+.zotero-webai-theme-toggle:active {
+  transform: scale(0.9);
+}
+
+.zotero-webai-theme-toggle svg {
+  height: 16px;
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  width: 16px;
+}
+
+.zotero-webai-theme-toggle:hover svg {
+  transform: rotate(30deg);
+}
+
+/* ─── Token Usage Bar ────────────────────────────────────────────── */
+
+.zotero-webai-token-bar {
+  align-items: center;
+  display: flex;
+  font-size: 10px;
+  gap: 8px;
+  padding: 4px 12px;
+}
+
+.zotero-webai-token-badge {
+  align-items: center;
+  border: 1px solid var(--webai-token-border, #bbf7d0);
+  border-radius: var(--webai-radius-full);
+  display: inline-flex;
+  font-size: 10px;
+  gap: 3px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.zotero-webai-token-progress {
+  border-radius: var(--webai-radius-full);
+  flex: 1 1 auto;
+  height: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.zotero-webai-token-progress-fill {
+  border-radius: var(--webai-radius-full);
+  height: 100%;
+  transition: width var(--webai-transition-normal);
+}
+
+/* ─── Quick Prompts ──────────────────────────────────────────────── */
+
+.zotero-webai-quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.zotero-webai-quick-prompt-pill {
+  appearance: none;
+  border: 1px solid var(--webai-qp-border, rgba(0, 0, 0, 0.1));
+  border-radius: var(--webai-radius-full);
+  color: var(--webai-qp-text, #4338ca);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 10px;
+  transition: all var(--webai-transition-fast);
+  white-space: nowrap;
+}
+
+.zotero-webai-quick-prompt-pill:hover {
+  background: var(--webai-qp-hover, #e4e4ff);
+  border-color: var(--webai-qp-border-hover, rgba(0, 0, 0, 0.15));
+  transform: translateY(-1px);
+}
+
+.zotero-webai-quick-prompt-pill:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ─── Thinking Effort Selector ───────────────────────────────────── */
+
+.zotero-webai-thinking-selector {
+  position: relative;
+  display: inline-flex;
+}
+
+.zotero-webai-thinking-trigger {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--webai-thinking-border, rgba(0, 0, 0, 0.1));
+  border-radius: var(--webai-radius-sm);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  gap: 3px;
+  height: 24px;
+  padding: 0 6px;
+  transition: all var(--webai-transition-fast);
+}
+
+.zotero-webai-thinking-trigger:hover {
+  border-color: var(--webai-thinking-border-hover, rgba(0, 0, 0, 0.2));
+}
+
+.zotero-webai-thinking-dropdown {
+  animation: webai-slide-down 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  background: var(--webai-dropdown-bg, #ffffff);
+  border: 1px solid var(--webai-dropdown-border, rgba(0, 0, 0, 0.1));
+  border-radius: var(--webai-radius-md);
+  bottom: calc(100% + 4px);
+  box-shadow: var(--webai-shadow-md);
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  min-width: 140px;
+  overflow: hidden;
+  padding: 4px;
+  position: absolute;
+  z-index: 100;
+}
+
+.zotero-webai-thinking-dropdown-title {
+  color: var(--webai-muted, #666);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 4px 8px 2px;
+  text-transform: uppercase;
+}
+
+.zotero-webai-thinking-option {
+  align-items: center;
+  border-radius: var(--webai-radius-sm);
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  padding: 5px 8px;
+  transition: background var(--webai-transition-fast);
+}
+
+.zotero-webai-thinking-option:hover {
+  background: var(--webai-model-hover, rgba(0, 0, 0, 0.04));
+}
+
+.zotero-webai-thinking-option[data-selected="true"] {
+  background: var(--webai-model-selected, rgba(99, 102, 241, 0.1));
+  font-weight: 600;
+}
+
+.zotero-webai-thinking-effort-dot {
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.zotero-webai-thinking-effort-dot[data-level="none"]   { background: #94a3b8; }
+.zotero-webai-thinking-effort-dot[data-level="low"]    { background: #60a5fa; }
+.zotero-webai-thinking-effort-dot[data-level="medium"] { background: #34d399; }
+.zotero-webai-thinking-effort-dot[data-level="high"]   { background: #fbbf24; }
+.zotero-webai-thinking-effort-dot[data-level="xhigh"]  { background: #f87171; }
+
+/* ─── Shared Interactive Utilities ───────────────────────────────── */
+
+.zotero-webai-icon-btn {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--webai-radius-sm);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  padding: 0;
+  transition: background var(--webai-transition-fast),
+              transform var(--webai-transition-fast);
+  width: 26px;
+}
+
+.zotero-webai-icon-btn:hover {
+  background: var(--webai-toolbar-btn-hover, rgba(0, 0, 0, 0.06));
+}
+
+.zotero-webai-icon-btn:active {
+  transform: scale(0.9);
+}
+
+.zotero-webai-icon-btn svg {
+  height: 16px;
+  width: 16px;
+}
+
+/* ─── Card Hover Effects ─────────────────────────────────────────── */
+
+.zotero-webai-card {
+  border-radius: var(--webai-radius-md);
+  box-shadow: var(--webai-shadow-sm);
+  transition: box-shadow var(--webai-transition-normal),
+              transform var(--webai-transition-normal);
+}
+
+.zotero-webai-card:hover {
+  box-shadow: var(--webai-shadow-md);
+}
+
+/* ─── Scrollbar Styling ──────────────────────────────────────────── */
+
+.zotero-webai-shell ::-webkit-scrollbar {
+  width: 6px;
+}
+
+.zotero-webai-shell ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.zotero-webai-shell ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.zotero-webai-shell ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ─── WebAI column (sibling of #tabs-deck) ───────────────────────── */
+
+#zotero-webai-pane {
+  display: flex;
+  flex-direction: column;
+  /* Hold the width the splitter set. Without flex: 0 0 auto the default
+     flex-shrink: 1 lets a crowded row squeeze the column towards zero, which
+     looks exactly like the embedded page failing to render. Zotero's
+     #main-window min-width is an explicit value rather than auto, so a real
+     min-width here cannot widen the window's own minimum. */
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+/* Zotero pins #tabs-deck at 570px (scss/abstracts/_variables.scss). That is a
+   sensible floor for a reader on its own, but with this column sharing the row
+   it caps how far the handle can travel. Relax it only while the column is
+   showing -- the attribute is set by openWebAIColumn -- so stock Zotero keeps
+   its own floor everywhere else. !important because Zotero's rule is an id
+   selector too, and this has to win. */
+#main-window[zotero-webai-column="open"] #tabs-deck {
+  min-width: 200px !important;
+}
+
+#zotero-webai-splitter-pane {
+  background: transparent;
+  cursor: ew-resize;
+  flex: 0 0 auto;
+  /* Never a window-drag region: on macOS that would swallow the drag. */
+  -moz-window-dragging: no-drag;
+  width: 5px;
+}
+
+#zotero-webai-splitter-pane:hover {
+  background: rgba(127, 127, 127, 0.35);
+}
+
+#zotero-webai-splitter-pane[hidden] {
+  display: none;
+}
+
+#zotero-webai-pane[hidden] {
+  display: none;
+}
+
+#zotero-webai-pane-mount {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------- reading status --
+   The tick in the item list, and the picker in the item pane. Drawn in CSS
+   rather than shipped as icons so the three states follow the user's theme and
+   Zotero's own accent colour without three more PNGs per state per scheme.
+
+   `.cell.clickable` is load-bearing and belongs to Zotero, not to us:
+   VirtualizedTable stops mousedown/mouseup propagation for anything inside one
+   (virtualized-table.jsx, _captureMouseUpDown), which is what lets a click on
+   the box toggle the paper without also selecting the row. Renaming that class
+   here would silently give the row its click back. */
+.paperly-read-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+.paperly-read-box {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: 1.5px solid var(--fill-tertiary, #909090);
+  box-sizing: border-box;
+  position: relative;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.paperly-read-cell:hover .paperly-read-box {
+  border-color: var(--fill-secondary, #666);
+}
+
+/* Reading: a bar rather than a half-tick. A partial tick reads as a rendering
+   glitch at 13px; a bar reads as deliberate. */
+.paperly-read-cell[data-paperly-status="reading"] .paperly-read-box::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 1px;
+  background: var(--accent-blue, #2e7fdb);
+  opacity: 0.55;
+}
+
+.paperly-read-cell[data-paperly-status="read"] .paperly-read-box {
+  background: var(--accent-blue, #2e7fdb);
+  border-color: var(--accent-blue, #2e7fdb);
+}
+/* The tick: two borders on a rotated box, so it scales with the square and
+   needs no glyph that a fallback font might not have. */
+.paperly-read-cell[data-paperly-status="read"] .paperly-read-box::after {
+  content: "";
+  position: absolute;
+  left: 3.5px;
+  top: 0.5px;
+  width: 3px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 1.8px 1.8px 0;
+  transform: rotate(45deg);
+}
+
+.paperly-read-picker {
+  display: flex;
+  gap: 4px;
+  padding: 2px 0;
+}
+.paperly-read-choice {
+  flex: 1;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--fill-quinary, #d0d0d0);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+.paperly-read-choice:hover {
+  background: var(--fill-quinary, rgba(0, 0, 0, 0.06));
+}
+.paperly-read-choice[aria-pressed="true"] {
+  background: var(--accent-blue, #2e7fdb);
+  border-color: var(--accent-blue, #2e7fdb);
+  color: #fff;
+}
+
+/* -------------------------------------------------------------- the star --
+   Two glyphs rather than one glyph and a fill: an outlined star made by
+   colouring a solid one needs a stroke the font cannot give, and ★/☆ are both
+   old enough to be in every system font. Same `.cell.clickable` contract as the
+   reading-status tick -- see the note above it. */
+.paperly-star-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+.paperly-star-glyph {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--fill-tertiary, #909090);
+  transition: color 120ms ease;
+}
+.paperly-star-cell:hover .paperly-star-glyph {
+  color: #C98A16;
+}
+.paperly-star-cell[data-paperly-starred="1"] .paperly-star-glyph {
+  color: #D9A521;
+}
