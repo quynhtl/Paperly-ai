@@ -49,7 +49,6 @@ Gemini_Generated_Image*.png
 *.DS_Store
 
 # Claude Code: the session's notes and memory live in ~/.claude, outside this
-# tree, so nothing of them can be committed by accident. These two are the only
-# things it leaves behind in a repo.
+# tree, so nothing of them can be committed by accident. CLAUDE.md is the only
+# thing it leaves in a repo; .claude/ is covered under the agent folders above.
 CLAUDE.md
-.claude/
