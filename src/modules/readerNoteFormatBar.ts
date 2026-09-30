@@ -649,9 +649,17 @@ function applySnapshot(state: BarState): void {
   // bold and its bold command UN-bolds instead: measured, it wrote a
   // font-weight:normal span, which showed part of the heading in plain text
   // until the next save quietly dropped it again.
-  (state.buttons.get("bold") as HTMLButtonElement).disabled = /^h[1-4]$/.test(
-    `${block ?? ""}`,
-  );
+  //
+  // The tooltip changes with it, and that is not decoration. A disabled button
+  // fires no click at all, so pressing it produces nothing: no change, no error,
+  // not a line in the log. From the outside that is indistinguishable from the
+  // whole feature being broken, and it was read that way.
+  const boldButton = state.buttons.get("bold") as HTMLButtonElement;
+  const inHeading = /^h[1-4]$/.test(`${block ?? ""}`);
+  boldButton.disabled = inHeading;
+  boldButton.title = inHeading
+    ? text("Headings are already bold", "标题已经是粗体")
+    : text("Bold", "加粗");
   state.buttons
     .get("link")
     ?.setAttribute("aria-pressed", marks.link ? "true" : "false");

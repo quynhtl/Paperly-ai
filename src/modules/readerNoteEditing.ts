@@ -74,9 +74,21 @@ function listOf(block: HTMLElement | null): HTMLElement | null {
 }
 
 function run(ctx: EditContext, command: string, value?: string): boolean {
+  const before = ctx.editor.innerHTML;
   try {
-    return ctx.doc.execCommand(command, false, value);
-  } catch {
+    const ok = ctx.doc.execCommand(command, false, value);
+    if (!ok || ctx.editor.innerHTML === before) {
+      // Not an error: toggling a mark off a caret, or a command the selection
+      // gives nothing to do, both land here. It is logged because a command that
+      // silently does nothing is invisible from the outside, and chasing one of
+      // those from the symptom costs a day.
+      Zotero.debug(
+        `Paperly note: execCommand(${command}) returned ${ok} and changed nothing`,
+      );
+    }
+    return ok;
+  } catch (e) {
+    Zotero.debug(`Paperly note: execCommand(${command}) threw ${e}`);
     return false;
   }
 }
