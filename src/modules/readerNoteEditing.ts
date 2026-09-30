@@ -62,6 +62,49 @@ export function currentBlock(ctx: EditContext): HTMLElement | null {
     : null;
 }
 
+/**
+ * True when everything the selection covers is heading text.
+ *
+ * currentBlock answers from the range's START, which is right for a caret and
+ * wrong for a decision about the whole selection: dragging from the end of a
+ * heading down through a paragraph begins in the heading, so currentBlock says
+ * "Heading 1" even though the heading contributes no visible text to the
+ * selection and the paragraph is what the user means. Bold was switched off on
+ * that answer, which made a normal gesture look like a broken feature.
+ *
+ * Only a selection that is ENTIRELY inside headings has nothing for bold to do.
+ */
+export function selectionIsAllHeadings(ctx: EditContext): boolean {
+  const selection = selectionOf(ctx);
+  if (!selection) {
+    return false;
+  }
+  const range = selection.getRangeAt(0);
+  const headings = Array.from(
+    ctx.editor.querySelectorAll("h1, h2, h3, h4, h5, h6"),
+  ) as HTMLElement[];
+  const insideAHeading = (node: Node | null): boolean => {
+    const element =
+      node?.nodeType === 1 ? (node as Element) : (node?.parentElement as Element);
+    const found = element?.closest("h1, h2, h3, h4, h5, h6") as HTMLElement | null;
+    return !!found && ctx.editor.contains(found);
+  };
+  if (!insideAHeading(range.startContainer) || !insideAHeading(range.endContainer)) {
+    return false;
+  }
+  // Both ends sit in headings, but the selection may still run across ordinary
+  // text between two of them.
+  for (const block of Array.from(ctx.editor.children) as HTMLElement[]) {
+    if (headings.includes(block)) {
+      continue;
+    }
+    if (range.intersectsNode(block) && String(block.textContent || "").length) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function currentCell(ctx: EditContext): HTMLElement | null {
   const block = currentBlock(ctx);
   const cell = block?.closest("td, th") as HTMLElement | null;
@@ -554,11 +597,76 @@ function toggleCode(ctx: EditContext): void {
   run(ctx, "styleWithCSS", "false");
 }
 
+/**
+ * Pulls the selection back off headings at either end, when there is ordinary
+ * text between them to work on.
+ *
+ * Bold is the reason. The pad draws headings at weight 650, so Gecko reads a
+ * selection that touches one as already bold and its bold command UN-bolds the
+ * lot: measured, a drag from the heading down through a paragraph produced
+ * `<h1><span style="font-weight: normal;">Hello </span></h1>` and left the
+ * paragraph plain. Dragging from the end of a heading into the paragraph is an
+ * ordinary gesture -- the heading contributes no visible text to the selection --
+ * so the fix is to act on what the user can see is selected, not on the block the
+ * range happens to start in.
+ *
+ * Returns false and changes nothing when there is no ordinary text to keep,
+ * which leaves an all-heading selection to be refused by the toolbar instead.
+ */
+function trimHeadingEdges(ctx: EditContext): boolean {
+  const selection = selectionOf(ctx);
+  if (!selection || selection.isCollapsed) {
+    return false;
+  }
+  const HEADINGS = "h1, h2, h3, h4, h5, h6";
+  const headingOf = (node: Node | null): HTMLElement | null => {
+    const element =
+      node?.nodeType === 1 ? (node as Element) : (node?.parentElement as Element);
+    const found = element?.closest(HEADINGS) as HTMLElement | null;
+    return found && ctx.editor.contains(found) ? found : null;
+  };
+
+  const range = selection.getRangeAt(0).cloneRange();
+  const startHeading = headingOf(range.startContainer);
+  const endHeading = headingOf(range.endContainer);
+  if (!startHeading && !endHeading) {
+    return false;
+  }
+  // Wholly inside one heading: nothing to trim to.
+  if (startHeading && startHeading === endHeading) {
+    return false;
+  }
+
+  if (startHeading) {
+    const after = startHeading.nextElementSibling;
+    if (!after) {
+      return false;
+    }
+    range.setStartBefore(after);
+  }
+  if (endHeading) {
+    const before = endHeading.previousElementSibling;
+    if (!before) {
+      return false;
+    }
+    range.setEndAfter(before);
+  }
+  if (range.collapsed || !range.toString()) {
+    return false;
+  }
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return true;
+}
+
 export function toggleMark(ctx: EditContext, id: NoteMarkId): void {
   ctx.editor.focus({ preventScroll: true });
   if (id === "code") {
     toggleCode(ctx);
     return;
+  }
+  if (id === "bold") {
+    trimHeadingEdges(ctx);
   }
   run(ctx, MARK_COMMANDS[id]);
 }

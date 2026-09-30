@@ -106,6 +106,7 @@ import {
   clearLink,
   currentBlock,
   currentCell,
+  selectionIsAllHeadings,
   decorateTodos,
   deleteTextRange,
   markStateAt,
@@ -1662,6 +1663,7 @@ function refreshFormatBar(surface: Surface): void {
       // so the switcher is not offered there.
       block: currentCell(ctx) ? null : blockIdOf(ctx),
       marks: markStateAt(ctx),
+      allHeadings: selectionIsAllHeadings(ctx),
     },
     onAction: (action) => runFormatAction(surface, action),
     onRestore: () => focusEditorAtCaret(surface),

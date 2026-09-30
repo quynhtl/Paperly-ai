@@ -59,6 +59,13 @@ export interface FormatBarSnapshot {
    */
   block: NoteBlockId | null;
   marks: MarkState;
+  /**
+   * Whether everything the selection covers is heading text, which is the only
+   * case where bold has nothing to do. Separate from `block`, which answers
+   * from the caret and says "heading" for any selection that merely STARTS in
+   * one -- see selectionIsAllHeadings.
+   */
+  allHeadings: boolean;
 }
 
 export interface FormatBarOptions {
@@ -655,7 +662,7 @@ function applySnapshot(state: BarState): void {
   // not a line in the log. From the outside that is indistinguishable from the
   // whole feature being broken, and it was read that way.
   const boldButton = state.buttons.get("bold") as HTMLButtonElement;
-  const inHeading = /^h[1-4]$/.test(`${block ?? ""}`);
+  const inHeading = state.options.snapshot.allHeadings;
   boldButton.disabled = inHeading;
   boldButton.title = inHeading
     ? text("Headings are already bold", "标题已经是粗体")
