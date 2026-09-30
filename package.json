@@ -4,10 +4,10 @@
   "version": "0.9.37",
   "description": "Paperly AI: an AI panel beside the reader, a reading status you can tick from the item list, and a starred collection. A plugin for Paperly.",
   "author": "quynhtl",
-  "homepage": "https://github.com/quynhtl/Paperly#readme",
+  "homepage": "https://github.com/quynhtl/Paperly-ai#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/quynhtl/Paperly.git"
+    "url": "git+https://github.com/quynhtl/Paperly-ai.git"
   },
   "config": {
     "addonName": "Paperly AI",
@@ -32,6 +32,6 @@
     "zotero-types": "^4.1.2"
   },
   "bugs": {
-    "url": "https://github.com/quynhtl/Paperly/issues"
+    "url": "https://github.com/quynhtl/Paperly-ai/issues"
   }
 }
