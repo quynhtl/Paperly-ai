@@ -1,17 +1,17 @@
 {
-  "name": "zotero-webai",
+  "name": "paperly-ai",
   "type": "module",
   "version": "0.9.37",
-  "description": "Zotero 9 Web AI reading workspace with embedded DeepSeek Web, Z.ai Web, ChatGPT Web, slash PDF, web search, custom skills, and MCP tooling.",
-  "author": "lineex",
-  "homepage": "https://github.com/quynhtl/Paperly-#readme",
+  "description": "Paperly AI: an AI panel beside the reader, a reading status you can tick from the item list, and a starred collection. A plugin for Paperly.",
+  "author": "quynhtl",
+  "homepage": "https://github.com/quynhtl/Paperly#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/quynhtl/Paperly-.git"
+    "url": "git+https://github.com/quynhtl/Paperly.git"
   },
   "config": {
     "addonName": "Paperly AI",
-    "addonID": "zotero-webai@lineex.dev",
+    "addonID": "paperly-ai@paperly.org",
     "addonRef": "zotero-webai",
     "addonInstance": "ZoteroWebAI",
     "prefsPrefix": "extensions.zotero.zotero-webai"
@@ -30,5 +30,8 @@
     "typescript": "^5.7.2",
     "zotero-plugin-scaffold": "^0.8.6",
     "zotero-types": "^4.1.2"
+  },
+  "bugs": {
+    "url": "https://github.com/quynhtl/Paperly/issues"
   }
 }

@@ -24,7 +24,11 @@ else
   DEV_PROFILE="$PAPERLY_DEV_PROFILE"
 fi
 DEV_DATA="${PAPERLY_DEV_DATA:-$HOME/Zotero-paperly-dev}"
-ADDON_ID="zotero-webai@lineex.dev"
+ADDON_ID="paperly-ai@paperly.org"
+# The id this plugin used to ship under. A changed id makes the add-on manager treat
+# the new build as a different plugin, so the old one stays installed and you get two
+# AI panels side by side -- which has happened once already. Remove it.
+LEGACY_ADDON_ID="zotero-webai@lineex.dev"
 ZOTERO_BIN="$ZOTERO_SRC/app/staging/Paperly.app/Contents/MacOS/paperly"
 LAUNCH=0
 [[ "${1:-}" == "--launch" ]] && LAUNCH=1
@@ -38,6 +42,26 @@ XPI="$(ls -t "$PLUGIN_DIR"/.scaffold/build/*.xpi | head -1)"
 
 echo "==> Installing into dev profile"
 mkdir -p "$DEV_PROFILE/extensions" "$DEV_DATA"
+
+if [[ -e "$DEV_PROFILE/extensions/$LEGACY_ADDON_ID.xpi" ]]; then
+  echo "==> Removing the plugin's previous id ($LEGACY_ADDON_ID)"
+  rm -f "$DEV_PROFILE/extensions/$LEGACY_ADDON_ID.xpi"
+  if [[ -f "$DEV_PROFILE/extensions.json" ]]; then
+    python3 - "$DEV_PROFILE/extensions.json" "$LEGACY_ADDON_ID" <<'LEGACY_PY'
+import json, sys
+path, legacy_id = sys.argv[1], sys.argv[2]
+with open(path) as fh:
+    data = json.load(fh)
+before = len(data.get("addons", []))
+data["addons"] = [a for a in data.get("addons", []) if a.get("id") != legacy_id]
+if len(data["addons"]) != before:
+    with open(path, "w") as fh:
+        json.dump(data, fh)
+LEGACY_PY
+  fi
+  rm -f "$DEV_PROFILE/addonStartup.json.lz4"
+fi
+
 cp "$XPI" "$DEV_PROFILE/extensions/$ADDON_ID.xpi"
 
 # Zotero disables side-loaded plugins by default.

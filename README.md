@@ -1,92 +1,78 @@
-# Zotero WebAI---Web AI Assistant Plugin for Zotero
+# Paperly AI
 
-[中文](README.zh-CN.md).
+A plugin for [Paperly](https://github.com/quynhtl/Paperly-client) that puts an AI
+assistant, a reading status and a starred collection into your library.
 
-> This checkout is the **Paperly** fork. Here the panel is called **Paperly AI**,
-> it targets Zotero 11, and it adds Claude, Gemini, NotebookLM, look-up
-> providers and a note pad in the reader. Everything below is upstream's own
-> README for the original Zotero 9 plugin, kept as provenance — its button and
-> menu names are the old ones. For what this fork changed, read
-> [`docs/PAPERLY-FORK.md`](docs/PAPERLY-FORK.md).
+It uses AI providers through their **web interfaces**, not their APIs. There is no
+API key to buy or configure: you sign in to the provider inside the panel, the same
+account you already use in a browser.
 
-Zotero WebAI is a Zotero 9 reading workspace that embeds DeepSeek Web, Z.ai Web, and ChatGPT Web beside the current Zotero library item or PDF reader. It requires no model API key: sign in inside the embedded web page and use the Zotero-side chat box to send Zotero context, slash commands, custom skills, and real MCP tool results into the web chat.
+> **Status: work in progress.** Built and run from source; there is no release yet.
 
-## Features
+## What it does
 
-- A small button in Zotero's tab-bar toolbar, left of the sync button, opens a panel beside the PDF. View → Zotero WebAI Panel opens a column that works in the library too.
-- Works in the library and PDF reader, using the current item, selected passage, imported PDF, or collection context.
-- Embedded DeepSeek Web, Z.ai Web, and ChatGPT Web login with an external-browser fallback.
-- Coding-client style slash commands in the chat box.
-- `/pdf` attaches the current PDF or Zotero item full text to the next prompt.
-- `/websearch` runs the built-in web search and attaches readable results.
-- `/zotero-mcp` loads the local `zotero-mcp` tool catalog, lets the web model choose tool names and arguments, executes real `tools/call` requests locally, then inserts the tool result back into the web chat.
-- Custom Skills in settings; type `/` in the chat box to select a Skill.
-- Up to 1000 custom Skills.
-- Results panel for MCP outputs, Skill prompts/results, PDF-assisted answers, web-search answers, and captured web answers.
-- No DeepSeek/Z.ai/ChatGPT API configuration.
+**An AI panel beside the paper.** A column that opens next to the reader or the
+library, carrying the provider's own web page. Claude, Gemini, NotebookLM, ChatGPT,
+DeepSeek and Z.ai. One surface that follows the paper you are on rather than one per
+tab.
 
-## Usage
+**A floating bot** you can drag anywhere. It moves on a spring, with inertia and a
+trailing wake, and can be dismissed with its close button — the Paperly icon in the
+top-right brings it back.
 
-1. Install the generated `.xpi` in Zotero 9 from `Tools -> Add-ons -> Install Add-on From File...`.
-2. Start `zotero-mcp` locally if you want `/zotero-mcp` tools available.
-3. Open a PDF or select a library item.
-4. Click the Zotero WebAI button in the tab-bar toolbar, left of the sync button.
-5. Sign in to your provider in the panel.
-6. Type `/` in the Zotero WebAI chat box to choose `/pdf`, `/websearch`, `/zotero-mcp`, or a custom Skill.
-7. Send a prompt. Zotero WebAI inserts the prompt, tries to submit it, captures the web answer, and records command results in the Results panel.
+**Reading status.** A column before the title where each paper is unread, reading or
+read, ticked straight from the list. Child rows stay unmarked.
 
-## Slash Commands
+**Starred papers.** A star column and a saved search that collects what you starred.
 
-- `/pdf`: explicitly attaches the current PDF or item full text. Ordinary prompts do not dump the full paper text.
-- `/websearch`: runs the built-in DuckDuckGo search and attaches readable results to the prompt. It is now the *only* way to trigger it — the toolbar toggle and the keyword sniffer both fired invisibly and were removed.
-- `/zotero-mcp`: explicitly loads `tools/list` from the configured MCP endpoint. The web model may then emit a `ZOTERO_WEBAI_MCP_REQUEST` block; Zotero WebAI executes the requested `tools/call` locally and inserts the real result back into the same web chat.
-- Custom Skills: add up to 1000 skills in settings and call them with `/`.
+**A note pad in the reader** that floats over both panes: blocks, tables, an emoji
+picker, five colour families, and a format bar over the selection.
 
-## MCP
+**Look-up on selected text** — translate, dictionary, and search — from the reader's
+selection popup.
 
-Zotero WebAI defaults to the local Streamable HTTP endpoint used by `zotero-mcp`.
+**Slash commands** in the chat box: `/pdf` attaches the current PDF or item full
+text, `/websearch` runs a search and attaches readable results, `/zotero-mcp` loads a
+local MCP tool catalogue and feeds real tool results back into the web chat. Custom
+skills are configured in settings.
 
-MCP is not injected into every ordinary prompt. Type `/zotero-mcp` when a conversation needs Zotero MCP tools. Zotero WebAI then embeds the `tools/list` catalog for that prompt, including each tool schema, so the web model can choose schema-valid tool names and arguments. Zotero WebAI detects the emitted MCP request block, calls the local MCP server with `tools/call`, shows the normalized result in the Results panel, and inserts the result back into the web chat so the model can continue answering.
-
-Every tool returned by `tools/list` is available for model-selected MCP calls during a `/zotero-mcp` conversation.
-
-Default MCP server setting:
-
-```json
-{
-  "mcpServers": {
-    "zotero-mcp": {
-      "type": "streamableHttp",
-      "url": "http://127.0.0.1:23120/mcp",
-      "headers": {
-        "Content-Type": "application/json"
-      }
-    }
-  }
-}
-```
-
-Default tool argument template:
-
-```json
-{"q":"{{query}}","limit":1000,"mode":"complete","relevanceScoring":true,"sort":"relevance"}
-```
-
-## Build
+## Building
 
 ```bash
 npm install
-npm run build
+npm run build          # produces .scaffold/build/Paperly.AI-<version>.xpi
 ```
 
-The XPI is emitted under `.scaffold/build/`.
+Install the `.xpi` through **Tools → Add-ons → Install Add-on From File**.
 
-Build outputs are intentionally not tracked in this repository. Download packaged `.xpi` files from GitHub Releases.
+While developing, `scripts/dev-reload.sh` builds and installs into an isolated dev
+profile rather than the one you use day to day, and `--launch` starts Paperly on it:
 
+```bash
+./scripts/dev-reload.sh --launch
+```
 
-## Support
+## Documentation
 
-Development takes time, attention, and tokens. If Zotero WebAI helps your reading workflow, you can buy me a coffee.
+Notes on how each piece works and why it was built that way are in [`docs/`](docs/):
 
-<img src="docs/reward-code.png" alt="Buy me a coffee reward code" width="260" />
+| | |
+| --- | --- |
+| [`BOT.md`](docs/BOT.md) | the floating bot, its spring physics and its clip budget |
+| [`READING-STATUS.md`](docs/READING-STATUS.md) | the status column, and three ways it silently failed to register |
+| [`STARRED.md`](docs/STARRED.md) | the star column and its saved search |
+| [`NOTE.md`](docs/NOTE.md) | the reader note pad |
+| [`ADDING-A-PROVIDER.md`](docs/ADDING-A-PROVIDER.md) | how to add an AI provider |
+| [`TESTING.md`](docs/TESTING.md) | how this is tested |
+| [`PAPERLY-FORK.md`](docs/PAPERLY-FORK.md) | what this fork changed |
 
+## Credits
+
+Paperly AI began as a fork of [**Zotero
+WebAI**](https://github.com/lineex/Zotero-WebAI) by **lineex**, which built the
+embedded web-provider workspace, the slash commands and the MCP bridge this plugin
+still rests on. The reading status, the starred collection, the floating bot, the
+note pad and the Paperly integration were added here.
+
+The upstream project does not carry a licence, so its terms are whatever its author
+grants. If you intend to redistribute this plugin, ask lineex first.
