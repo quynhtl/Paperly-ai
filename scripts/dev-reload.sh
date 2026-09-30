@@ -64,7 +64,23 @@ fi
 
 cp "$XPI" "$DEV_PROFILE/extensions/$ADDON_ID.xpi"
 
-# Zotero disables side-loaded plugins by default.
+# Paperly disables side-loaded plugins by default: XPIDatabase checks the location's
+# scope against extensions.autoDisableScopes and sets userDisabled on anything that
+# was merely dropped into the extensions directory, which is exactly what this script
+# does. Turning the pref off for THIS profile is the fix that holds.
+#
+# Patching extensions.json afterwards, below, only ever worked for a plugin that was
+# already recorded there. The first install of a new id has no record to patch, so it
+# came up disabled and looked like every feature had vanished. That is not
+# hypothetical: it happened when the id changed to paperly-ai@paperly.org.
+mkdir -p "$DEV_PROFILE"
+if ! grep -q 'extensions.autoDisableScopes' "$DEV_PROFILE/prefs.js" 2>/dev/null; then
+  echo 'user_pref("extensions.autoDisableScopes", 0);' >> "$DEV_PROFILE/prefs.js"
+  echo "==> Allowed side-loaded plugins in the dev profile"
+fi
+
+# Belt and braces for a profile that already holds a disabled record: the pref above
+# only governs the moment an add-on is first seen.
 if [[ -f "$DEV_PROFILE/extensions.json" ]]; then
   python3 - "$DEV_PROFILE/extensions.json" "$ADDON_ID" <<'PY'
 import json, sys
