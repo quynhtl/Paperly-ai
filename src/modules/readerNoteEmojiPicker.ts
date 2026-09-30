@@ -691,10 +691,15 @@ export async function openEmojiPicker(
     }
     event.preventDefault();
   };
+  // mousedown as well: cancelling pointerdown does not stop the browser
+  // collapsing the selection -- see the note on the same pair in
+  // readerNoteFormatBar.
   root.addEventListener("pointerdown", onPointerDown);
-  state.teardown.push(() =>
-    root.removeEventListener("pointerdown", onPointerDown),
-  );
+  root.addEventListener("mousedown", onPointerDown);
+  state.teardown.push(() => {
+    root.removeEventListener("pointerdown", onPointerDown);
+    root.removeEventListener("mousedown", onPointerDown);
+  });
 
   const onClick = (event: Event): void => {
     const target = event.target as Element | null;

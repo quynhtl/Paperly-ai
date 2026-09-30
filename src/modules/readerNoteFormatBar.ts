@@ -577,15 +577,31 @@ function build(options: FormatBarOptions): BarState {
 
   // Nothing here may take the caret out of the note -- except the link field,
   // which is the one thing that has to have it.
+  //
+  // BOTH events, and mousedown is the one that matters. Cancelling pointerdown
+  // does not stop the browser collapsing the selection; cancelling mousedown
+  // does. Without it, pressing a button dropped the selection, the bar saw no
+  // range left to act on and took itself away, and the button was gone by the
+  // time the finger came up. Recorded in a real session:
+  //
+  //   pointerdown target=button[mark=bold]  at=603,894
+  //   mousedown   target=button[mark=bold]  at=603,894  defaultPrevented=false
+  //   mouseup     target=p                  at=603,894
+  //
+  // mousedown and mouseup on different elements produce no click at all, so the
+  // handler never ran: every button was dead, with nothing logged and nothing on
+  // screen to say why.
   const onPointerDown = (event: Event): void => {
     if (event.target !== linkField) {
       event.preventDefault();
     }
   };
   root.addEventListener("pointerdown", onPointerDown);
-  state.teardown.push(() =>
-    root.removeEventListener("pointerdown", onPointerDown),
-  );
+  root.addEventListener("mousedown", onPointerDown);
+  state.teardown.push(() => {
+    root.removeEventListener("pointerdown", onPointerDown);
+    root.removeEventListener("mousedown", onPointerDown);
+  });
 
   const onOutside = (event: Event): void => {
     const target = event.target as Node | null;

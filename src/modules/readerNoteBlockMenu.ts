@@ -411,13 +411,20 @@ export function openBlockMenu(options: BlockMenuOptions): void {
   renderRows(state);
   place(state);
 
-  // Nothing in here may take the caret out of the editor, so every pointerdown
-  // inside the menu is cancelled. The click still fires.
+  // Nothing in here may take the caret out of the editor, so every press inside
+  // the menu is cancelled. mousedown as well as pointerdown: cancelling
+  // pointerdown does not stop the browser collapsing the selection, and a
+  // collapsed selection takes the toolbar away mid-press -- see the note on the
+  // same pair in readerNoteFormatBar.
   const onPointerDown = (event: Event): void => {
     event.preventDefault();
   };
   root.addEventListener("pointerdown", onPointerDown);
-  state.teardown.push(() => root.removeEventListener("pointerdown", onPointerDown));
+  root.addEventListener("mousedown", onPointerDown);
+  state.teardown.push(() => {
+    root.removeEventListener("pointerdown", onPointerDown);
+    root.removeEventListener("mousedown", onPointerDown);
+  });
 
   const onClick = (event: Event): void => {
     const row = (event.target as Element | null)?.closest(
