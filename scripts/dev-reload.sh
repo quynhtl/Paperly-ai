@@ -9,7 +9,20 @@ set -euo pipefail
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZOTERO_SRC="${ZOTERO_SRC:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../paperly-client" && pwd)}"
-DEV_PROFILE="${PAPERLY_DEV_PROFILE:-$HOME/Library/Application Support/Zotero/Profiles/paperly-dev}"
+# Paperly reads its profiles from Application Support/Paperly (Vendor/Name in
+# application.ini). Follow the migrated location, but fall back to the old one so
+# this keeps working on a machine where paperly-client/app/scripts/migrate_profile
+# has not been run yet.
+if [[ -z "${PAPERLY_DEV_PROFILE:-}" ]]; then
+  DEV_PROFILE="$HOME/Library/Application Support/Paperly/Profiles/paperly-dev"
+  LEGACY_PROFILE="$HOME/Library/Application Support/Zotero/Profiles/paperly-dev"
+  if [[ ! -d "$DEV_PROFILE" && -d "$LEGACY_PROFILE" ]]; then
+    echo "==> Using pre-migration dev profile: $LEGACY_PROFILE"
+    DEV_PROFILE="$LEGACY_PROFILE"
+  fi
+else
+  DEV_PROFILE="$PAPERLY_DEV_PROFILE"
+fi
 DEV_DATA="${PAPERLY_DEV_DATA:-$HOME/Zotero-paperly-dev}"
 ADDON_ID="zotero-webai@lineex.dev"
 ZOTERO_BIN="$ZOTERO_SRC/app/staging/Paperly.app/Contents/MacOS/paperly"
