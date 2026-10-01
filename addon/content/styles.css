@@ -766,7 +766,6 @@
 .paperly-read-cell {
   display: flex;
   align-items: center;
-  justify-content: center;
   cursor: default;
 }
 .paperly-read-box {
@@ -835,6 +834,28 @@
   color: #fff;
 }
 
+/* Both marks sit at the start of their column, where the header label starts,
+   like the text of Title and Creator -- not centred. Zotero centres every
+   `.cell.clickable` and drops its padding (virtualized-table.scss), hence the
+   heavier selectors; 8px is the inline padding of every other cell and of the
+   header. Moved to the front, the column gives up that padding for the twisty
+   indent, which Zotero adds to the cell's first child -- as padding, which would
+   crush the 13px box, so it becomes a margin here. */
+.virtualized-table .cell.clickable.paperly-read-cell,
+.virtualized-table .cell.clickable.paperly-star-cell {
+  justify-content: flex-start;
+  padding-inline: 8px;
+}
+.virtualized-table .cell.clickable.paperly-read-cell:first-child,
+.virtualized-table .cell.clickable.paperly-star-cell:first-child {
+  padding-inline-start: 0;
+}
+.virtualized-table .cell.paperly-read-cell:first-child > .paperly-read-box,
+.virtualized-table .cell.paperly-star-cell:first-child > .paperly-star-glyph {
+  padding-inline-start: 0;
+  margin-inline-start: calc(var(--first-column-extra-width, 0px) + 8px);
+}
+
 /* -------------------------------------------------------------- the star --
    Two glyphs rather than one glyph and a fill: an outlined star made by
    colouring a solid one needs a stroke the font cannot give, and ★/☆ are both
@@ -843,7 +864,6 @@
 .paperly-star-cell {
   display: flex;
   align-items: center;
-  justify-content: center;
   cursor: default;
 }
 .paperly-star-glyph {
