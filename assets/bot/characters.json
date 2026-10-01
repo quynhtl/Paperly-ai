@@ -8,14 +8,34 @@
       "frames": 3
     },
     {
+      "id": "anya-waku",
+      "name": "Anya · Waku Waku",
+      "file": "bot-anya-waku.png",
+      "frames": 1,
+      "source": "anya-waku.webp",
+      "cutout": "anya-waku.cut.png",
+      "crop": [545, 215, 265],
+      "tint": [250, 140, 170]
+    },
+    {
+      "id": "anya-heh",
+      "name": "Anya · Heh",
+      "file": "bot-anya-heh.png",
+      "frames": 1,
+      "source": "anya-heh.webp",
+      "cutout": "anya-heh.cut.png",
+      "crop": [338, 205, 175],
+      "tint": [248, 150, 180]
+    },
+    {
       "id": "nezuko",
       "name": "Nezuko",
       "file": "bot-nezuko.png",
       "frames": 1,
-      "source": "nezuko.jpg",
-      "crop": [294, 288, 228],
-      "field": "white",
-      "tint": [244, 156, 176]
+      "source": "nezuko.webp",
+      "cutout": "nezuko.cut.png",
+      "crop": [400, 350, 255],
+      "tint": [236, 64, 122]
     },
     {
       "id": "gojo",
@@ -33,8 +53,8 @@
       "file": "bot-naruto.png",
       "frames": 1,
       "source": "naruto.jpg",
+      "cutout": "naruto.cut.png",
       "crop": [596, 382, 362],
-      "field": "white",
       "tint": [255, 172, 84]
     },
     {
@@ -42,8 +62,8 @@
       "name": "Itachi",
       "file": "bot-itachi.png",
       "frames": 1,
-      "source": "itachi.webp",
-      "crop": [325, 430, 265],
+      "source": "itachi.jpg",
+      "crop": [600, 790, 470],
       "opaque": true,
       "tint": [228, 76, 88]
     }

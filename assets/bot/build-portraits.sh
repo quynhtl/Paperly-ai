@@ -15,13 +15,14 @@ SIZE=192
 
 [ -x "$CHROME" ] || { echo "No Chrome at $CHROME -- set CHROME=..." >&2; exit 1; }
 
-# One line per character: file, source, cx, cy, r, field.
+# One line per character: file, drawing, cx, cy, r, field. The drawing is the
+# cut-out when there is one (see matte.py), so the crop reads the same pixels.
 ROWS="$(node -e '
 	const { characters } = require(process.argv[1]);
 	for (const c of characters) {
 		if (!c.source) { continue; }
 		const [cx, cy, r] = c.crop;
-		console.log([c.file, c.source, cx, cy, r, c.field || "-"].join("\t"));
+		console.log([c.file, c.cutout || c.source, cx, cy, r, c.field || "-"].join("\t"));
 	}
 ' "$HERE/characters.json")"
 
