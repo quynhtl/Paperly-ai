@@ -2,7 +2,8 @@
 # Renders the Paperly AI plugin icons into addon/content/icons/, and into the
 # web port's copies of the same files. Two drawings, two pages:
 #   logo.png  -> icon.html -> icon-{20,48,96}.png   the emblem, as a tile
-#   face.png  -> bot.html  -> bot-192.png           her face, as a blink strip
+#   face.png  -> bot.html  -> bot-anya.png          her face, as a blink strip,
+#                             bot-192.png           and the web port's older one
 #
 #   ./build-icons.sh
 set -euo pipefail
@@ -43,24 +44,31 @@ for s in 20 48 96; do
 	render "$TMP/icon-$s.png" "$s" "$EMBLEM"
 done
 
-# The floating bot's face: three frames of a blink, side by side. 192 is 2x
-# the 96px the bot draws one frame at, so the strip is 576 wide.
+# The floating bot's face: three frames of a blink, side by side.
+#
+# The plugin's bot gives a face a 112px frame around its 96px disc, so her head
+# can come up out of it; 224 is that frame at 2x. She is fitted a little larger
+# and a little higher than in the old frame -- 0.89 of its width, centred at
+# 0.51 of its height -- which puts her ears and her ahoge over the disc's rim
+# and keeps her chin inside it. (assets/bot/README.md has the frame.)
+shoot "$TMP/bot-anya.png" 672 224 "file://$HERE/bot.html?size=224&sheet=1&fill=0.89&centre=0.51"
+# The web port still draws her the old way, a 192px frame that is all disc.
 shoot "$TMP/bot-192.png" 576 192 "file://$HERE/bot.html?size=192&sheet=1"
 
 
-install_into() { # install_into <dir> [sizes...]
-	local dir="$1"; shift
+install_into() { # install_into <dir> <bot face file> [sizes...]
+	local dir="$1" face="$2"; shift 2
 	[ -d "$dir" ] || { echo "   skip (absent): $dir"; return; }
 	for s in "$@"; do
 		cp "$TMP/icon-$s.png" "$dir/icon-$s.png"
 	done
-	cp "$TMP/bot-192.png" "$dir/bot-192.png"
+	cp "$TMP/$face" "$dir/$face"
 	echo "   $dir"
 }
 
 echo "==> Installing"
-install_into "$PLUGIN/addon/content/icons" 20 48 96
-install_into "$WEB/packages/webai-core/addon/content/icons" 20 48 96
-install_into "$WEB/apps/companion/static/icons" 20 48 96
+install_into "$PLUGIN/addon/content/icons" bot-anya.png 20 48 96
+install_into "$WEB/packages/webai-core/addon/content/icons" bot-192.png 20 48 96
+install_into "$WEB/apps/companion/static/icons" bot-192.png 20 48 96
 
 echo "==> Done"

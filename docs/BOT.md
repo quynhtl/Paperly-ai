@@ -172,11 +172,12 @@ start a drag instead of closing anything.
 
 ## The artwork
 
-`addon/content/icons/bot-192.png`, rendered by `assets/icon/build-icons.sh`
+`addon/content/icons/bot-anya.png`, rendered by `assets/icon/build-icons.sh`
 from `face.png` through `bot.html`. It is **not** one picture: it is a strip of
-three frames — eyes open, half, shut — laid side by side, 192px each, 576
+three frames — eyes open, half, shut — laid side by side, 224px each, 672
 wide. One file rather than three means one decode and no frame that can go
-missing on its own.
+missing on its own. (The web port still draws her from the older
+`bot-192.png`, a 192px frame that is all disc; the script renders both.)
 
 The emblem (`logo.png`, the crown-and-ribbon crest) is still what the toolbar
 button, the plugin manager and the preferences pane wear. The bot wears the
@@ -211,6 +212,9 @@ the bottom. The box is measured **once** and reused for every frame, because
 only the eyes differ between them and a blink must not shift her.
 
 ### The bubble
+
+*The plugin no longer draws her inside clear glass: see **Depth** below. What
+follows is why the glass is CSS at all, which still holds.*
 
 Glass in CSS, not baked into the PNG: only CSS can keep it translucent, drift
 its catchlight and answer the panel's state, and baking it would triple the
@@ -293,16 +297,17 @@ changes: `--paperly-face`, the strip's frame count, and a tint. So nothing in
 *The box never changes size* has to be re-measured for a new character.
 
 **Only a strip blinks.** `data-blink` is set for faces with more than one
-frame. Stepping a one-frame face to "half" would show empty glass.
+frame. Stepping a one-frame face to "half" would show nothing.
 
 **Anya keeps her rose to the digit.** The tint rules are all
 `[data-tint]:not(.is-active)` overrides written after her colours, and she has
 no tint. Anyone with a tint takes over the bloom, both rings, the outer glow
 and the ripple. Never the active state, which stays steel blue for everyone.
 
-**A face with its own background hides the glass**, and the glass's shading
-goes with it. `data-opaque` paints that shading over the picture as inset
-shadows on the face.
+**Two kinds of face.** A *cut-out* is the character on transparency and stands
+in front of the plate; a *framed* portrait keeps its own background and fills
+the disc, hiding the plate, so `.paperly-bot-shade` paints the sphere's
+shading back over it. `data-kind` on the root says which; see **Depth**.
 
 **The new face arrives with a hop.** `hop` throws the bubble upward through
 the carry's own spring (`vy -= 9`) and rings the ripple. It is the same motion
@@ -314,6 +319,38 @@ choosing. So the picker is placed by hand beside the bot, follows it during a
 carry, and adds its own rectangle to the clip, padded by `PICKER_BLEED` for
 its shadow. It closes on Done, Escape or any press in the window outside the
 dock, and closing it settles a first run, so it is only offered once.
+
+## Depth
+
+Each face is drawn in a **112px frame** around the 96px disc (`botArt`), and
+that 8px of room on every side is what lets it look three-dimensional:
+
+| Layer | What it does |
+| --- | --- |
+| `.paperly-bot-plate` | A sphere in the character's colour, lit from the top left, with its far side in shadow. Covered by a framed portrait. |
+| `.paperly-bot-face` | The face. A cut-out is masked (`botArt.faceMask`) to the disc, and *above the disc's middle* it may leave it: the head comes up out of the plate and over the rim. It throws a drop shadow on the plate and catches a hairline of light along its top. |
+| `.paperly-bot-rim` | A bevel cut to a 2.6px ring, bright top left, dark underneath. |
+| `.paperly-bot-gloss` | The catchlight: over a framed portrait (glass), under a cut-out (which stands in front of the sphere). |
+
+Order is set by z-index per `data-kind`, not by the DOM. For a cut-out the rim
+is *behind* the face, which is how the head covers it at the top; at the bottom
+the mask stops 0.4px inside the rim, so there the rim is in front.
+
+The mask's cut across the middle is soft (52 → 60px down the frame), so hair
+that leaves the disc at the side thins out instead of stopping on a ruled line,
+and the top 3px fade in for a tip that reaches the frame's edge. A figure that
+runs off its own drawing (Naruto's tallest spikes leave it at the top) is
+faded at render time instead: `fade` in `characters.json`.
+
+**Hover leans the layers apart.** The pointer's position across the disc,
+-1..1 per axis, goes to the stylesheet as `--paperly-tilt-x/y`; the face moves
+1.5px toward it, the plate 1px and the catchlight 2px away. `translate`, not
+`transform`, so it adds to the catchlight's drift instead of replacing it. Not
+while carried (the wind owns that), and not under reduced motion.
+
+The frame is inside the clip budget, at the top of the bob, which is the worst
+case: `(56 + 1.5 tilt + 0.7 light + 6 bob) × 1.06 = 68.1 ≤ 70`. See the
+comment on `BOX`.
 
 ## Traps
 

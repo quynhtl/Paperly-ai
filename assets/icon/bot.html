@@ -4,8 +4,9 @@
   The floating bot's face. build-icons.sh screenshots this once, as a strip of
   three blink frames; floatingBot.ts steps between them with background-position.
 
-  Query: ?size=<px>&sheet=1   -- the three-frame strip the plugin ships
+  Query: ?size=<px>&sheet=1   -- the three-frame strip
          ?size=<px>&frame=<0|1|2>  -- one frame on its own, for looking at
+         &fill=<0..1>&centre=<0..1> -- her fit, overriding FILL and CENTRE_Y
 
   face.png is a finished drawing -- pink hair, cat-ear clips, big eyes -- on a
   near-black field. Three things are done to it here, and nothing is redrawn.
@@ -73,8 +74,10 @@ const ERODE = 8;
 // Fitted to her own box, not to the drawing's. 0.92 leaves the bubble a rim of
 // glass to show around her; 0.52 drops her a little below the middle, which is
 // where the ahoge clears the top and the collar still reaches the bottom.
-const FILL = 0.92;
-const CENTRE_Y = 0.52;
+// The plugin's 3D bot asks for a bigger frame around a smaller disc, and with
+// it a different fit; see build-icons.sh.
+const FILL = +(q.get("fill") || 0.92);
+const CENTRE_Y = +(q.get("centre") || 0.52);
 
 const SKIN = [250, 239, 231];
 const SKIN_TOL = 30;

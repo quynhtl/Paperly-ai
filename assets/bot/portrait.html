@@ -1,14 +1,28 @@
 <!doctype html>
 <meta charset="utf-8">
 <!--
-  One character's face for the floating bot, as a single round frame.
+  One character's face for the floating bot, as a single frame.
   build-portraits.sh screenshots this once per entry in characters.json.
 
-  Query: ?src=<file>&cx=<px>&cy=<px>&r=<px>&field=<white|>&size=<px>
+  Query: ?src=<file>&cx=<px>&cy=<px>&r=<px>&size=<px>
+         &box=<ratio>&shape=<disc|free>&field=<white|>&tone=<contrast,saturate>
 
-  The crop is a circle in the source's own pixels: its centre and radius. A
-  circle and not a box, because the bot shows a disc -- whatever is outside
-  this circle is never seen, so it is what the numbers are read off.
+  The crop is a circle in the source's own pixels, its centre and radius: the
+  bot's disc. The frame is wider than the disc by `box` -- 112/96, the room the
+  bot gives a face to come out of its disc -- and `size` is the frame's width.
+
+  shape=disc rounds the picture to the disc: a framed portrait, whose own
+  background fills the glass. shape=free keeps the whole frame: a cut-out,
+  which the bot masks itself, letting the head out over the top of the disc
+  and keeping the shoulders inside it.
+
+  tone lifts a washed-out scan: "1.15,1.2" is 15% more contrast and 20% more
+  colour.
+
+  fade=<px> thins a cut-out out over that many source pixels next to the
+  drawing's own edges. A figure that runs off the drawing -- Naruto's tallest
+  spikes leave it at the top -- would otherwise end in a ruled line, and above
+  the disc, where a cut-out is let out, that line shows.
 
   field=white is for art drawn on a white page. The page is cut away, so the
   head floats in the glass the way Anya's does. A plain "white -> clear" would
@@ -29,7 +43,11 @@ const SIZE  = +(q.get("size") || 192);
 const CX    = +q.get("cx");
 const CY    = +q.get("cy");
 const R     = +q.get("r");
+const BOX   = +(q.get("box") || 1);
+const SHAPE = q.get("shape") || "disc";
 const FIELD = q.get("field") || "";
+const TONE  = (q.get("tone") || "").split(",").filter(Boolean).map(Number);
+const FADE  = +(q.get("fade") || 0);
 
 // Anything this light on every channel might be the page. Not only the page:
 // the brightest of Nezuko's forehead measures 242 -- so what keeps a face is
@@ -94,7 +112,9 @@ function cutPage(g, D) {
 
 const img = new Image();
 img.onload = () => {
-  const D = Math.round(R * 2);
+  // The frame, in source pixels: the disc's square grown by BOX.
+  const reach = R * BOX;
+  const D = Math.round(reach * 2);
   const crop = document.createElement("canvas");
   crop.width = crop.height = D;
   const g = crop.getContext("2d", { willReadFrequently: true });
@@ -103,7 +123,26 @@ img.onload = () => {
     g.fillStyle = "#fff";
     g.fillRect(0, 0, D, D);
   }
-  g.drawImage(img, -(CX - R), -(CY - R));
+  if (TONE.length) {
+    g.filter = `contrast(${TONE[0]}) saturate(${TONE[1] ?? 1})`;
+  }
+  g.drawImage(img, -(CX - reach), -(CY - reach));
+  g.filter = "none";
+  if (FADE > 0) {
+    const image = g.getImageData(0, 0, D, D);
+    const px = image.data;
+    const ox = CX - reach, oy = CY - reach;
+    for (let y = 0; y < D; y++) {
+      for (let x = 0; x < D; x++) {
+        const sx = x + ox, sy = y + oy;
+        const edge = Math.min(sx, sy, img.width - sx, img.height - sy);
+        if (edge < FADE) {
+          px[(x + y * D) * 4 + 3] *= Math.max(0, edge) / FADE;
+        }
+      }
+    }
+    g.putImageData(image, 0, 0);
+  }
   if (FIELD === "white") {
     cutPage(g, D);
   }
@@ -123,12 +162,12 @@ img.onload = () => {
   const o = out.getContext("2d");
   o.imageSmoothingQuality = "high";
   o.drawImage(cur, 0, 0, SIZE, SIZE);
-  // The disc. CSS rounds the bot's face anyway; doing it here as well is what
-  // gives the picker's small copies the same soft edge.
-  o.globalCompositeOperation = "destination-in";
-  o.beginPath();
-  o.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
-  o.fill();
+  if (SHAPE === "disc") {
+    o.globalCompositeOperation = "destination-in";
+    o.beginPath();
+    o.arc(SIZE / 2, SIZE / 2, SIZE / 2 / BOX, 0, Math.PI * 2);
+    o.fill();
+  }
 };
 img.src = q.get("src");
 </script>

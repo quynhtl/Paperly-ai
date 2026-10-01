@@ -66,15 +66,18 @@ that one's size, not us.
 
 ## And one that is not the emblem at all
 
-`bot-192.png`, for the floating bot. Different drawing, different page:
+`bot-anya.png`, for the floating bot. Different drawing, different page:
 `face.png` through `bot.html`. The emblem stays on the toolbar button, the
 plugin manager and the preferences pane; the bot wears her face, because a face
 can blink and a crest cannot.
 
-It is a **strip of three frames** — eyes open, half, shut — 192px each, 576
+It is a **strip of three frames** — eyes open, half, shut — 224px each, 672
 wide. One file rather than three: one decode, and no frame that can go missing
-on its own. 192 because the bot draws one frame at 96 CSS px and grows it to
-1.06 under the pointer.
+on its own. 224 because the plugin's bot draws a face in a 112 CSS px frame
+around its 96px disc, so her head can come up out of it, and she is fitted a
+little larger for it (`fill=0.89&centre=0.51`). The web port still uses
+`bot-192.png`, the old 192px frame that is all disc; the script renders both
+and copies each where it is used.
 
 It ships as **her head on transparency**, with no field of its own: the bubble
 behind her is CSS, and it can only be translucent if nothing opaque is baked in

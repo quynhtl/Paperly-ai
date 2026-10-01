@@ -17,6 +17,16 @@
 // Swapping faces swaps a background image and a tint, and nothing that moves,
 // so every character gets the same spring, wind and bob.
 import {
+  CUTOUT_FILTER,
+  DISC,
+  FRAME,
+  PLATE_BACKGROUND,
+  artStyleSheet,
+  buildCharacterArt,
+  faceMask,
+  plateColours,
+} from "./botArt";
+import {
   BOT_CHARACTERS,
   botCharacterUrl,
   currentBotCharacter,
@@ -45,10 +55,10 @@ const CHARACTER_MENU_ID = "zotero-webai-bot-character-menu";
 const ENABLED_PREF = "floatingBot";
 const POSITION_PREF = "floatingBotPosition";
 
-// A face is a strip of frames laid side by side, each 192px -- the 2x of the
-// 96 CSS px the bot draws one at, grown to 1.06 under the pointer. Anya's has
+// A face is a strip of frames laid side by side, each 224px -- the 2x of the
+// FRAME (112 CSS px) the bot draws one in, around its 96px disc. Anya's has
 // three, open, half and shut, which is how she blinks; a face with one frame
-// holds still. See botCharacters for the list.
+// holds still. See botCharacters for the list, and botArt for the frame.
 
 /** One face in the picker, in CSS px. */
 const CHOICE = 44;
@@ -81,10 +91,17 @@ const PICKER_BLEED = 24;
  *     ripple 48 x 1.42 + 2 border                                = 69.2  <= 70
  *     orbit (49.5 / 50) x 62                                     = 61.4  <= 70
  *
+ * And a face is drawn in a 112px frame, so a head can come up out of the
+ * disc. Its top is the worst case, at the top of the bob, where the float is
+ * 6px up and unsquashed:
+ *
+ *     (56 frame + 1.5 tilt + 0.7 edge light + 6 bob) x 1.06 hover = 68.1  <= 70
+ *     sides: (56 + 1.5 + 2 shadow blur) x 1.016 x 1.06           = 64.1  <= 70
+ *
  * Anything added here has to be checked against 70, or it will be cut.
  */
 const BOX = 140;
-const ART = 96;
+const ART = DISC;
 /** What the box carries beyond the bubble, and so the gap the bubble always keeps. */
 const PAD = (BOX - ART) / 2;
 
@@ -499,12 +516,8 @@ function styleSheet(): string {
   animation: paperly-bot-float 4.6s ease-in-out infinite;
 }
 
-/* The glass she floats in. The tint runs pearl at the top into violet at the
-   bottom, which is what gives a flat circle its volume; the inset highlight and
-   the inset underlight are the near and far walls of the sphere. It is kept
-   translucent, so the page shows through the way it does through a bubble --
-   which is only possible because bot-192.png is her head cut out on
-   transparency, with no field of its own behind her. */
+/* The glass. The plate covers its face now, so what is left of it to see is
+   what it throws outside itself: the drop shadow and the outer glow. */
 .paperly-bot-bubble {
   position: absolute;
   inset: 0;
@@ -539,36 +552,64 @@ function styleSheet(): string {
     0 0 12px rgba(122, 200, 230, 0.48);
 }
 
-/* The face, from whichever character is chosen; see applyCharacter. A strip
-   of frames is stepped through rather than faded between, because a blink is
-   two held frames and not a cross-fade -- and only a strip blinks at all: a
-   one-frame face stepped to "half" would show empty glass. */
-.paperly-bot-face {
+/* The plate: a sphere in the character's colour, lit from the top left. A
+   cut-out stands in front of it; a framed portrait covers it. */
+.paperly-bot-plate {
   position: absolute;
   inset: 0;
   border-radius: 50%;
+  background: ${PLATE_BACKGROUND};
+  box-shadow:
+    inset 0 -9px 14px rgba(30, 16, 50, 0.35),
+    inset 0 4px 8px rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+/* The face, from whichever character is chosen; see applyCharacter. It is
+   drawn in a frame ${(FRAME - ART) / 2}px wider than the disc on every side, and a cut-out
+   is masked (botArt.faceMask): inside the disc, and above the disc's middle
+   it may leave it -- the head comes up out of the plate and over the rim.
+
+   A strip of frames is stepped through rather than faded between, because a
+   blink is two held frames and not a cross-fade -- and only a strip blinks at
+   all: a one-frame face stepped to "half" would show nothing. */
+.paperly-bot-face {
+  position: absolute;
+  inset: -${(FRAME - ART) / 2}px;
   background-image: var(--paperly-face);
   background-repeat: no-repeat;
-  background-size: calc(${ART}px * var(--paperly-face-frames, 1)) ${ART}px;
+  background-size: calc(${FRAME}px * var(--paperly-face-frames, 1)) ${FRAME}px;
   background-position: 0 0;
   pointer-events: none;
 }
 #${ROOT_ID}[data-blink] .paperly-bot-face {
   animation: paperly-bot-blink 5.4s step-end infinite;
 }
-/* A face drawn with its own background hides the glass behind it, and the
-   shading that made the glass a sphere goes with it. So that shading is put
-   back over the picture: dusk along the bottom, light along the top. */
-#${ROOT_ID}[data-opaque] .paperly-bot-face {
+#${ROOT_ID}[data-kind="cutout"] .paperly-bot-face {
+  mask-image: var(--paperly-face-mask);
+  filter: ${CUTOUT_FILTER};
+}
+/* A framed portrait hides the plate, and the shading that made the plate a
+   sphere goes with it. So that shading is put back over the picture: dusk
+   along the bottom, light along the top. */
+.paperly-bot-shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
   box-shadow:
-    inset 0 -12px 18px rgba(24, 16, 48, 0.36),
-    inset 0 7px 14px rgba(255, 255, 255, 0.16);
+    inset 0 -12px 18px rgba(24, 16, 48, 0.40),
+    inset 0 7px 14px rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+#${ROOT_ID}[data-kind="cutout"] .paperly-bot-shade {
+  display: none;
 }
 
 /* The catchlight, and the small answering glint low on the far side. This is
-   the one thing that makes a tinted circle read as a sphere of glass rather
-   than as a disc, so it sits over her: she is inside the bubble, not on it. It
-   drifts, because a highlight nailed to one spot looks painted on. */
+   the one thing that makes a tinted circle read as a sphere rather than as a
+   disc. Over a framed portrait, which is behind glass; under a cut-out, which
+   stands in front of the sphere. It drifts, because a highlight nailed to one
+   spot looks painted on. */
 .paperly-bot-gloss {
   position: absolute;
   inset: 0;
@@ -582,21 +623,63 @@ function styleSheet(): string {
   pointer-events: none;
 }
 
-/* The glass edge, and the one thing on it that answers the panel's state. */
+/* The edge: a bevel, bright where the light from the top left catches it and
+   dark underneath, cut to a 2.6px ring. It is the one thing on the bubble that
+   answers the panel's state. A cut-out's head comes up over it; at the bottom
+   the cut-out is masked 0.4px inside it, so there the rim is in front. */
 .paperly-bot-rim {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.55),
-    inset 0 0 10px rgba(255, 255, 255, 0.30);
-  transition: box-shadow 280ms ease;
+  background: linear-gradient(168deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.45) 40%,
+    rgba(255, 255, 255, 0.15) 62%,
+    rgba(30, 20, 60, 0.45) 100%);
+  mask-image: radial-gradient(circle closest-side,
+    transparent calc(100% - 3px), #000 calc(100% - 2.4px));
   pointer-events: none;
 }
 #${ROOT_ID}.is-active .paperly-bot-rim {
-  box-shadow:
-    inset 0 0 0 1.5px rgba(206, 238, 252, 0.80),
-    inset 0 0 12px rgba(168, 220, 244, 0.42);
+  background: linear-gradient(168deg,
+    rgba(226, 246, 255, 0.98) 0%,
+    rgba(168, 220, 244, 0.65) 40%,
+    rgba(122, 200, 230, 0.35) 62%,
+    rgba(20, 40, 80, 0.50) 100%);
+}
+
+/* Which layer is in front depends on the kind of face. A cut-out stands in
+   front of everything on the sphere; a framed portrait sits behind its shading,
+   its rim and its catchlight, the way a picture sits behind glass. */
+.paperly-bot-bubble { z-index: 0; }
+.paperly-bot-plate { z-index: 1; }
+#${ROOT_ID}[data-kind="cutout"] .paperly-bot-gloss { z-index: 2; }
+#${ROOT_ID}[data-kind="cutout"] .paperly-bot-rim { z-index: 3; }
+#${ROOT_ID}[data-kind="cutout"] .paperly-bot-face { z-index: 4; }
+#${ROOT_ID}[data-kind="framed"] .paperly-bot-face { z-index: 2; }
+#${ROOT_ID}[data-kind="framed"] .paperly-bot-shade { z-index: 3; }
+#${ROOT_ID}[data-kind="framed"] .paperly-bot-rim { z-index: 4; }
+#${ROOT_ID}[data-kind="framed"] .paperly-bot-gloss { z-index: 5; }
+.paperly-bot-dot { z-index: 6; }
+
+/* Depth under the pointer. Hovering leans the layers apart -- the face toward
+   the pointer, the plate and the catchlight away from it -- which is what a
+   thing with depth does when the eye moves across it. \`translate\` rather
+   than \`transform\`, so it adds to the catchlight's own drift instead of
+   replacing it. The amounts are in the budget above. */
+.paperly-bot-face,
+.paperly-bot-plate,
+.paperly-bot-gloss {
+  transition: translate 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.paperly-bot-face {
+  translate: calc(var(--paperly-tilt-x, 0) * 1.5px) calc(var(--paperly-tilt-y, 0) * 1.5px);
+}
+.paperly-bot-plate {
+  translate: calc(var(--paperly-tilt-x, 0) * -1px) calc(var(--paperly-tilt-y, 0) * -1px);
+}
+.paperly-bot-gloss {
+  translate: calc(var(--paperly-tilt-x, 0) * -2px) calc(var(--paperly-tilt-y, 0) * -2px);
 }
 
 /* On-air light. It exists only while the panel is open, so it is a reading and
@@ -786,19 +869,19 @@ function styleSheet(): string {
   gap: 10px;
   margin-top: 11px;
 }
-/* Each face is the character's own file, first frame, at ${CHOICE}px. The ring
-   that marks the chosen one is in that character's tint, so the picker already
-   shows the colour the bubble is about to take. */
+/* Each face is the character as the bot would wear it, plate and all, at
+   ${CHOICE}px (botArt). The ring that marks the chosen one is in that character's
+   tint, so the picker already shows the colour the bubble is about to take. */
 .paperly-bot-choice {
+  display: grid;
+  place-items: center;
   width: ${CHOICE}px;
   height: ${CHOICE}px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.06);
-  background-repeat: no-repeat;
-  background-position: 0 0;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
+  background: none;
+  --paperly-art-size: ${CHOICE}px;
   cursor: default;
   transition:
     transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -815,6 +898,7 @@ function styleSheet(): string {
     0 0 0 2px rgba(20, 24, 44, 1),
     0 0 0 4px rgb(var(--paperly-choice-tint, 246, 176, 204));
 }
+${artStyleSheet()}
 .paperly-bot-choice:focus-visible {
   outline: 2px solid #7BD0EC;
   outline-offset: 5px;
@@ -853,13 +937,13 @@ function styleSheet(): string {
    half-shut, 76ms shut, 43ms half again. */
 @keyframes paperly-bot-blink {
   0%      { background-position: 0 0; }
-  38.0%   { background-position: -${ART}px 0; }
-  38.8%   { background-position: -${ART * 2}px 0; }
-  40.2%   { background-position: -${ART}px 0; }
+  38.0%   { background-position: -${FRAME}px 0; }
+  38.8%   { background-position: -${FRAME * 2}px 0; }
+  40.2%   { background-position: -${FRAME}px 0; }
   41.0%   { background-position: 0 0; }
-  93.0%   { background-position: -${ART}px 0; }
-  93.8%   { background-position: -${ART * 2}px 0; }
-  95.2%   { background-position: -${ART}px 0; }
+  93.0%   { background-position: -${FRAME}px 0; }
+  93.8%   { background-position: -${FRAME * 2}px 0; }
+  95.2%   { background-position: -${FRAME}px 0; }
   96.0%   { background-position: 0 0; }
 }
 /* Rising, with the squash a bubble takes at the top and bottom of its travel.
@@ -974,18 +1058,23 @@ function buildBot(dock: OverlayDock, win: Window, host: HTMLElement): Bot {
   body.className = "paperly-bot-body";
   const float = doc.createElement("div");
   float.className = "paperly-bot-float";
-  // Glass behind her, catchlight in front: she is inside the bubble, not on it.
+  // The order here is only the reading order; what is in front of what is
+  // set per kind of face by z-index, in the stylesheet.
   const bubble = doc.createElement("div");
   bubble.className = "paperly-bot-bubble";
+  const plate = doc.createElement("div");
+  plate.className = "paperly-bot-plate";
   const face = doc.createElement("div");
   face.className = "paperly-bot-face";
+  const shade = doc.createElement("div");
+  shade.className = "paperly-bot-shade";
   const gloss = doc.createElement("div");
   gloss.className = "paperly-bot-gloss";
   const rim = doc.createElement("div");
   rim.className = "paperly-bot-rim";
   const dot = doc.createElement("div");
   dot.className = "paperly-bot-dot";
-  float.append(bubble, face, gloss, rim, dot);
+  float.append(bubble, plate, face, shade, gloss, rim, dot);
   body.appendChild(float);
 
   const pulse = doc.createElement("div");
@@ -1110,14 +1199,18 @@ function pulse(bot: Bot): void {
 
 // -------------------------------------------------------------- character --
 
-/** Dresses the bot as `character`: face, frames and tint. Nothing that moves. */
+/** Dresses the bot as `character`: face, frames, plate and tint. Nothing that moves. */
 function applyCharacter(bot: Bot, character: BotCharacter): void {
   bot.character = character;
   const root = bot.root;
   root.style.setProperty("--paperly-face", `url("${botCharacterUrl(character)}")`);
   root.style.setProperty("--paperly-face-frames", String(character.frames));
+  root.style.setProperty("--paperly-face-mask", faceMask(character));
+  root.dataset.kind = character.kind;
   root.toggleAttribute("data-blink", character.frames > 1);
-  root.toggleAttribute("data-opaque", Boolean(character.opaque));
+  const plate = plateColours(character);
+  root.style.setProperty("--paperly-plate", plate.tint.join(", "));
+  root.style.setProperty("--paperly-plate-deep", plate.deep.join(", "));
   if (character.tint) {
     const [r, g, b] = character.tint;
     // The near ring is drawn a shade deeper than the far one, as Anya's are.
@@ -1215,8 +1308,13 @@ function positionPicker(bot: Bot): void {
  * face -- and saved at once, so there is nothing to confirm; Done only closes.
  * Closing in any way also settles a first run, so the picker is offered once
  * and does not come back to ask again.
+ *
+ * Opened by the user, it closes like any popover, on a press anywhere else.
+ * Offered on a first run it does not: the window has only just appeared, and a
+ * stray click into it would take the question away before it was read. Then
+ * only Done and Escape close it.
  */
-function openPicker(bot: Bot): void {
+function openPicker(bot: Bot, { firstRun = false } = {}): void {
   if (bot.picker) {
     return;
   }
@@ -1250,8 +1348,7 @@ function openPicker(bot: Bot): void {
     choice.setAttribute("role", "radio");
     choice.setAttribute("aria-label", character.name);
     choice.title = character.name;
-    choice.style.backgroundImage = `url("${botCharacterUrl(character)}")`;
-    choice.style.backgroundSize = `${CHOICE * character.frames}px ${CHOICE}px`;
+    choice.appendChild(buildCharacterArt(doc, character, botCharacterUrl(character)));
     if (character.tint) {
       choice.style.setProperty("--paperly-choice-tint", character.tint.join(", "));
     }
@@ -1280,7 +1377,7 @@ function openPicker(bot: Bot): void {
   done.type = "button";
   done.className = "paperly-bot-picker-done";
   done.textContent = "Done";
-  done.addEventListener("click", () => closePicker(bot));
+  done.addEventListener("click", () => closePicker(bot, "done"));
   foot.append(name, done);
 
   picker.append(title, hint, faces, foot);
@@ -1296,14 +1393,16 @@ function openPicker(bot: Bot): void {
 
   const onKey = (event: KeyboardEvent): void => {
     if (event.key === "Escape") {
-      closePicker(bot);
+      closePicker(bot, "escape");
     }
   };
   // A press in the window itself is a press outside the picker: the dock's
   // frame is a separate document, so its own presses never arrive here.
-  const onOutside = (): void => closePicker(bot);
+  const onOutside = (): void => closePicker(bot, "outside");
   doc.addEventListener("keydown", onKey);
-  bot.win.addEventListener("pointerdown", onOutside, true);
+  if (!firstRun) {
+    bot.win.addEventListener("pointerdown", onOutside, true);
+  }
 
   bot.closePicker = () => {
     doc.removeEventListener("keydown", onKey);
@@ -1317,10 +1416,11 @@ function openPicker(bot: Bot): void {
   (faces.querySelector('[aria-checked="true"]') as HTMLElement | null)?.focus();
 }
 
-function closePicker(bot: Bot): void {
+function closePicker(bot: Bot, reason: string): void {
   if (!bot.picker) {
     return;
   }
+  ztoolkit.log(`Bot picker closed: ${reason}`);
   const close = bot.closePicker;
   bot.picker = null;
   bot.closePicker = null;
@@ -1329,6 +1429,25 @@ function closePicker(bot: Bot): void {
     saveBotCharacter(bot.character.id);
   }
   syncClip(bot);
+}
+
+/**
+ * Leans the layers toward the pointer: -1..1 across the disc on each axis,
+ * handed to the stylesheet, which decides how far each layer moves.
+ */
+function tilt(bot: Bot, clientX: number, clientY: number): void {
+  if (wantsStill(bot)) {
+    return;
+  }
+  const lean = (at: number, centre: number) =>
+    Math.max(-1, Math.min(1, (at - centre) / (ART / 2))).toFixed(3);
+  bot.root.style.setProperty("--paperly-tilt-x", lean(clientX, bot.x + BOX / 2));
+  bot.root.style.setProperty("--paperly-tilt-y", lean(clientY, bot.y + BOX / 2));
+}
+
+function untilt(bot: Bot): void {
+  bot.root.style.removeProperty("--paperly-tilt-x");
+  bot.root.style.removeProperty("--paperly-tilt-y");
 }
 
 /**
@@ -1372,6 +1491,8 @@ function attachPointer(bot: Bot): void {
         dragging = true;
         root.classList.add("is-dragging");
         hideTip(bot);
+        // Carried, it leans with the wind instead; see paintMotion.
+        untilt(bot);
         // The pointer is held down on the bot, so nothing else can be clicked
         // anyway: let the dock catch everything until it lands, rather than
         // recutting the clip on every move.
@@ -1427,7 +1548,13 @@ function attachPointer(bot: Bot): void {
     }
     showTip(bot);
   };
+  const onHover = (event: PointerEvent): void => {
+    if (!root.classList.contains("is-dragging")) {
+      tilt(bot, event.clientX, event.clientY);
+    }
+  };
   const onLeave = (): void => {
+    untilt(bot);
     if (root.classList.contains("is-dragging")) {
       return;
     }
@@ -1443,7 +1570,7 @@ function attachPointer(bot: Bot): void {
   const onContext = (event: Event): void => {
     event.preventDefault();
     if (bot.picker) {
-      closePicker(bot);
+      closePicker(bot, "right-click");
     } else {
       openPicker(bot);
     }
@@ -1451,11 +1578,13 @@ function attachPointer(bot: Bot): void {
 
   root.addEventListener("pointerdown", onDown);
   root.addEventListener("pointerenter", onEnter);
+  root.addEventListener("pointermove", onHover);
   root.addEventListener("pointerleave", onLeave);
   root.addEventListener("contextmenu", onContext);
   bot.teardown.push(() => {
     root.removeEventListener("pointerdown", onDown);
     root.removeEventListener("pointerenter", onEnter);
+    root.removeEventListener("pointermove", onHover);
     root.removeEventListener("pointerleave", onLeave);
     root.removeEventListener("contextmenu", onContext);
   });
@@ -1513,7 +1642,7 @@ export async function installFloatingBot(win: Window): Promise<void> {
   if (!hasChosenBotCharacter()) {
     const timer = win.setTimeout(() => {
       if (bots.get(win) === bot && !hasChosenBotCharacter()) {
-        openPicker(bot);
+        openPicker(bot, { firstRun: true });
       }
     }, PICKER_DELAY);
     bot.teardown.push(() => win.clearTimeout(timer));

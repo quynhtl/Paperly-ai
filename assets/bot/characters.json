@@ -4,17 +4,21 @@
     {
       "id": "anya",
       "name": "Anya",
-      "file": "bot-192.png",
-      "frames": 3
+      "file": "bot-anya.png",
+      "frames": 3,
+      "kind": "cutout",
+      "popout": true
     },
     {
       "id": "anya-waku",
       "name": "Anya · Waku Waku",
       "file": "bot-anya-waku.png",
       "frames": 1,
+      "kind": "cutout",
+      "popout": true,
       "source": "anya-waku.webp",
       "cutout": "anya-waku.cut.png",
-      "crop": [545, 215, 265],
+      "crop": [560, 254, 225],
       "tint": [250, 140, 170]
     },
     {
@@ -22,9 +26,11 @@
       "name": "Anya · Heh",
       "file": "bot-anya-heh.png",
       "frames": 1,
+      "kind": "cutout",
+      "popout": false,
       "source": "anya-heh.webp",
       "cutout": "anya-heh.cut.png",
-      "crop": [338, 205, 175],
+      "crop": [338, 184, 170],
       "tint": [248, 150, 180]
     },
     {
@@ -32,9 +38,11 @@
       "name": "Nezuko",
       "file": "bot-nezuko.png",
       "frames": 1,
+      "kind": "cutout",
+      "popout": true,
       "source": "nezuko.webp",
       "cutout": "nezuko.cut.png",
-      "crop": [400, 350, 255],
+      "crop": [400, 330, 240],
       "tint": [236, 64, 122]
     },
     {
@@ -42,9 +50,10 @@
       "name": "Gojo",
       "file": "bot-gojo.png",
       "frames": 1,
+      "kind": "framed",
       "source": "gojo.jpg",
       "crop": [140, 222, 138],
-      "opaque": true,
+      "tone": [1.05, 1.1],
       "tint": [140, 162, 255]
     },
     {
@@ -52,9 +61,12 @@
       "name": "Naruto",
       "file": "bot-naruto.png",
       "frames": 1,
+      "kind": "cutout",
+      "popout": true,
       "source": "naruto.jpg",
       "cutout": "naruto.cut.png",
-      "crop": [596, 382, 362],
+      "crop": [600, 330, 310],
+      "fade": 40,
       "tint": [255, 172, 84]
     },
     {
@@ -62,9 +74,10 @@
       "name": "Itachi",
       "file": "bot-itachi.png",
       "frames": 1,
+      "kind": "framed",
       "source": "itachi.jpg",
-      "crop": [600, 790, 470],
-      "opaque": true,
+      "crop": [560, 860, 500],
+      "tone": [1.18, 1.25],
       "tint": [228, 76, 88]
     }
   ]

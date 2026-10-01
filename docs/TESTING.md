@@ -509,7 +509,7 @@ screenshot guide across the top of the window.
 | 3b | Compare the tab-bar button with the chevron and sync icons beside it | It sits a little larger than them and lines up on the same centre. If it looks small, the padding in `styles.css` has crept back to 4px |
 | 4 | Open the plugin manager | The whole emblem: crown, circuit ring, **A.I.** eyes, INTELLIGENCE ribbon. Nothing clipped at any edge -- if the crown's top ball is cut, the zoom has crept past 1.10 |
 | 5 | Switch Zotero between light and dark | The icon holds on both -- the emblem's field is navy either way, by design |
-| 6 | Look at the floating bot | Her face inside a translucent bubble, from `bot-192.png`. The emblem here means the bot is being served an `icon-*.png`; an opaque dark disc behind her means a stale strip with its field still baked in |
+| 6 | Look at the floating bot | Her face on a rose plate, her ears and ahoge over the rim, from `bot-anya.png`. The emblem here means the bot is being served an `icon-*.png`; a dark square behind her means a stale strip with its field still baked in |
 
 ## The AI column is never duplicated
 

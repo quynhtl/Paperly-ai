@@ -18,15 +18,20 @@ export interface BotCharacter {
   file: string;
   /** 3 for a blink strip (open, half, shut), 1 for a still face. */
   frames: number;
-  /** "r, g, b" the bloom, the rings and the click ripple take. None keeps Anya's rose. */
+  /**
+   * "cutout": the character on transparency, standing in front of the plate.
+   * "framed": a picture with its own background, filling the disc.
+   */
+  kind: "cutout" | "framed";
+  /** A cut-out whose head may come up out of the disc; see botArt. */
+  popout?: boolean;
+  /** [r, g, b] for the plate, the bloom, the rings and the ripple. None keeps Anya's rose. */
   tint?: number[];
-  /** Drawn with its own background, so the glass behind it never shows. */
-  opaque?: boolean;
 }
 
 const CHARACTER_PREF = "floatingBotCharacter";
 
-export const BOT_CHARACTERS: BotCharacter[] = registry.characters;
+export const BOT_CHARACTERS = registry.characters as BotCharacter[];
 
 const DEFAULT_CHARACTER =
   BOT_CHARACTERS.find((c) => c.id === registry.default) ?? BOT_CHARACTERS[0];
