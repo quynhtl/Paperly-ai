@@ -24,6 +24,7 @@ import {
 } from "./modules/floatingBot";
 import { buildStartupDiagnostic } from "./utils/startupDiagnostics";
 import { registerPreferencesPane } from "./modules/preferencesPane";
+import { registerBotSettings } from "./modules/botSettings";
 import {
   registerReadingStatus,
   unregisterReadingStatus,
@@ -300,6 +301,7 @@ async function onPrefsEvent(type: string, data: { [key: string]: any }) {
     case "load":
       if (data.window) {
         registerPreferencesPane(data.window as Window);
+        registerBotSettings(data.window as Window);
       }
       break;
     default:

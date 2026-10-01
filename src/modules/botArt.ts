@@ -106,13 +106,20 @@ export function artStyleSheet(): string {
 `;
 }
 
-/** A character at the size of its element: the plate, and the face over it. */
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+
+/**
+ * A character at the size of its element: the plate, and the face over it.
+ * Built in the HTML namespace explicitly: Settings is XUL markup, and what a
+ * bare createElement makes depends on the document it is called on.
+ */
 export function buildCharacterArt(
   doc: Document,
   character: BotCharacter,
   url: string,
 ): HTMLElement {
-  const art = doc.createElement("span");
+  const span = () => doc.createElementNS(HTML_NS, "span") as HTMLElement;
+  const art = span();
   art.className = "paperly-art";
   art.dataset.kind = character.kind;
   const { tint, deep } = plateColours(character);
@@ -120,9 +127,9 @@ export function buildCharacterArt(
   art.style.setProperty("--paperly-plate-deep", deep.join(", "));
   art.style.setProperty("--paperly-art-frames", String(character.frames));
 
-  const plate = doc.createElement("span");
+  const plate = span();
   plate.className = "paperly-art-plate";
-  const face = doc.createElement("span");
+  const face = span();
   face.className = "paperly-art-face";
   face.style.backgroundImage = `url("${url}")`;
   if (character.kind === "cutout") {

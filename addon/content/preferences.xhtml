@@ -56,6 +56,34 @@
         </hbox>
       </vbox>
 
+      <!-- Filled in by botSettings.ts; applies on click, not on Save. -->
+      <vbox
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding: 14px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          border-radius: 10px;
+          background: rgba(127, 127, 127, 0.04);
+        "
+      >
+        <description
+          data-l10n-id="ai-assistant-pref-bot-title"
+          value="Floating Bot"
+          style="font-weight: 600"
+        />
+        <description data-l10n-id="ai-assistant-pref-bot-help">
+          Who sits in the floating bot. A choice shows at once; you can also right-click the bot to change it.
+        </description>
+        <checkbox
+          id="zotero-ai-assistant-pref-bot-show"
+          data-l10n-id="ai-assistant-pref-bot-show"
+          label="Show the floating bot"
+        />
+        <html:div id="zotero-ai-assistant-pref-bot" />
+      </vbox>
+
       <vbox
         style="
           display: flex;

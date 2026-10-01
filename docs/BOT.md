@@ -289,7 +289,7 @@ Anya is one of several characters. The list is
 | Wearing a face | `applyCharacter`: a background image, a frame count, a tint, as properties and attributes on the root |
 | The first-run offer | `installFloatingBot`, `PICKER_DELAY` after the bot appears, while the pref is still empty |
 | The picker | `openPicker`, beside the bubble, a sibling of the root with its own hole in the dock |
-| Changing later | right-click the bot, or **View → Paperly AI Bot Character** |
+| Changing later | right-click the bot, **View → Paperly AI Bot Character**, or **Settings → Paperly AI → Floating Bot** (`botSettings.ts`) |
 
 **A swap changes nothing that moves.** The spring, the wind, the bob, the
 hover swell and the clip budget are the same for every face. Only paint

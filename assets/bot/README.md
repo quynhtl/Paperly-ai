@@ -10,7 +10,8 @@ head comes up out of the disc and over the rim; a **framed** portrait keeps its
 background and fills the disc. `docs/BOT.md` (*Depth*) has the layers.
 
 On the first launch the bot offers the list in a picker beside itself. After
-that it is a right-click on the bot, or **View → Paperly AI Bot Character**.
+that it is a right-click on the bot, **View → Paperly AI Bot Character**, or
+**Settings → Paperly AI → Floating Bot**.
 The choice is the pref `extensions.zotero.zotero-webai.floatingBotCharacter`;
 empty means nobody has chosen yet, which is what makes the picker appear.
 
