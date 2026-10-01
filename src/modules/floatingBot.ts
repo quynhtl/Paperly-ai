@@ -760,15 +760,18 @@ function styleSheet(): string {
   font-size: 12.5px;
 }
 
-/* Dismiss. Placed by arithmetic rather than by eye: a 20px button inset 21px
-   from the top-right of the ${BOX}px box centres at (109, 31), which is 55px
-   from the centre -- 7px clear of the ${ART}px bubble's rim, and well inside
-   the 70px the clip allows. Anything moved outward from here has to be checked
-   against that budget; see BOX. */
-.paperly-bot-close {
+/* Dismiss, top right, and change face, top left. Placed by arithmetic rather
+   than by eye: a 20px button inset 21px from a top corner of the ${BOX}px box
+   centres at (109, 31) or (31, 31), which is 55px from the centre -- 7px clear
+   of the ${ART}px bubble's rim, and well inside the 70px the clip allows.
+   Anything moved outward from here has to be checked against that budget; see
+   BOX. */
+.paperly-bot-close,
+.paperly-bot-swap {
   position: absolute;
   top: 21px;
-  right: 21px;
+  display: grid;
+  place-items: center;
   width: 20px;
   height: 20px;
   padding: 0;
@@ -785,7 +788,24 @@ function styleSheet(): string {
   transform: scale(0.8);
   transition: opacity 140ms ease, transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-#${ROOT_ID}:hover .paperly-bot-close {
+.paperly-bot-close {
+  right: 21px;
+}
+.paperly-bot-swap {
+  left: 21px;
+}
+.paperly-bot-swap svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#${ROOT_ID}:hover .paperly-bot-close,
+#${ROOT_ID}:hover .paperly-bot-swap,
+#${ROOT_ID}.is-choosing .paperly-bot-swap {
   opacity: 1;
   pointer-events: auto;
   transform: scale(1);
@@ -793,8 +813,13 @@ function styleSheet(): string {
 .paperly-bot-close:hover {
   background: rgba(196, 60, 60, 0.95);
 }
+.paperly-bot-swap:hover,
+#${ROOT_ID}.is-choosing .paperly-bot-swap {
+  background: rgba(64, 114, 229, 0.95);
+}
 /* Never during a carry: the pointer is down and the gesture is the drag. */
-#${ROOT_ID}.is-dragging .paperly-bot-close {
+#${ROOT_ID}.is-dragging .paperly-bot-close,
+#${ROOT_ID}.is-dragging .paperly-bot-swap {
   opacity: 0;
   pointer-events: none;
 }
@@ -1035,6 +1060,24 @@ function buildOrbit(doc: Document): HTMLElement {
   return wrap;
 }
 
+/** Two arrows chasing each other round: swap. */
+function buildSwapIcon(doc: Document): Element {
+  const svg = doc.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of [
+    "M20 11a8 8 0 0 0-14.6-4.4",
+    "M4 3v4h4",
+    "M4 13a8 8 0 0 0 14.6 4.4",
+    "M20 21v-4h-4",
+  ]) {
+    const path = doc.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    svg.appendChild(path);
+  }
+  return svg;
+}
+
 function buildBot(dock: OverlayDock, win: Window, host: HTMLElement): Bot {
   const doc = dock.doc;
   doc.getElementById(ROOT_ID)?.remove();
@@ -1101,7 +1144,16 @@ function buildBot(dock: OverlayDock, win: Window, host: HTMLElement): Bot {
     void setFloatingBotEnabled(win, false);
   });
 
-  root.append(glow, buildOrbit(doc), shadow, body, pulse, tip, close);
+  // Change face: the picker, from a control that can be seen. Wired up in
+  // attachPointer, which has the bot to open it for.
+  const swap = doc.createElement("button");
+  swap.className = "paperly-bot-swap";
+  swap.type = "button";
+  swap.title = "Change character";
+  swap.setAttribute("aria-label", "Change the bot's character");
+  swap.appendChild(buildSwapIcon(doc));
+
+  root.append(glow, buildOrbit(doc), shadow, body, pulse, tip, close, swap);
   host.appendChild(root);
 
   return {
@@ -1335,7 +1387,7 @@ function openPicker(bot: Bot, { firstRun = false } = {}): void {
   title.textContent = "Pick a companion";
   const hint = doc.createElement("div");
   hint.className = "paperly-bot-picker-hint";
-  hint.textContent = "Right-click the bot to change it later";
+  hint.textContent = "Change it later with the \u21BB on the bot, or in Settings";
 
   const faces = doc.createElement("div");
   faces.className = "paperly-bot-picker-faces";
@@ -1384,6 +1436,7 @@ function openPicker(bot: Bot, { firstRun = false } = {}): void {
   // A sibling of the root, so nothing the root does to the pointer reaches it.
   bot.root.after(picker);
   bot.picker = picker;
+  bot.root.classList.add("is-choosing");
   syncPickerChoice(bot);
   positionPicker(bot);
   syncClip(bot);
@@ -1408,6 +1461,7 @@ function openPicker(bot: Bot, { firstRun = false } = {}): void {
     doc.removeEventListener("keydown", onKey);
     bot.win.removeEventListener("pointerdown", onOutside, true);
     picker.remove();
+    bot.root.classList.remove("is-choosing");
     if (chromeDoc.activeElement === bot.dock.frame) {
       focusedBefore?.focus?.();
     }
@@ -1575,6 +1629,24 @@ function attachPointer(bot: Bot): void {
       openPicker(bot);
     }
   };
+
+  const swap = root.querySelector(".paperly-bot-swap") as HTMLElement | null;
+  // As for the close button: the root starts a drag on pointerdown.
+  const onSwapDown = (event: Event): void => event.stopPropagation();
+  const onSwap = (event: Event): void => {
+    event.stopPropagation();
+    if (bot.picker) {
+      closePicker(bot, "button");
+    } else {
+      openPicker(bot);
+    }
+  };
+  swap?.addEventListener("pointerdown", onSwapDown);
+  swap?.addEventListener("click", onSwap);
+  bot.teardown.push(() => {
+    swap?.removeEventListener("pointerdown", onSwapDown);
+    swap?.removeEventListener("click", onSwap);
+  });
 
   root.addEventListener("pointerdown", onDown);
   root.addEventListener("pointerenter", onEnter);
