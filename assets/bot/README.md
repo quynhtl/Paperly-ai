@@ -114,6 +114,14 @@ and shut, cut out by hand-tuned code in `../icon/bot.html` and built by
 `../icon/build-icons.sh`. A blink needs the eyes found and repainted for that
 one drawing, so the faces added here hold still.
 
+## The user's own characters
+
+They are not here. The (+) in the picker and in Settings makes them at runtime
+(`src/modules/botCharacterEditor.ts`) and keeps them in the profile:
+`<profile>/paperly-bot/<id>.png`, listed in the pref
+`extensions.zotero.zotero-webai.floatingBotCustomCharacters`. `docs/BOT.md`
+has how.
+
 ## Whose drawings these are
 
 Every face here is somebody's artwork, and the characters belong to their

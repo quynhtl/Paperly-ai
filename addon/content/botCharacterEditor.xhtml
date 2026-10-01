@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+  Adding your own character to the floating bot: the picture, placed in the
+  bot's circle, with or without its background. Everything in it is built by
+  src/modules/botCharacterEditor.ts; this is only the window.
+-->
+<window
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  id="paperly-bot-editor"
+  title="Add Your Own Character"
+  width="660"
+  height="520"
+  onload="Zotero.ZoteroWebAI.hooks.onBotEditorEvent('load', { window })"
+>
+  <script src="chrome://zotero/content/include.js" />
+  <html:div id="paperly-bot-editor-root" />
+</window>

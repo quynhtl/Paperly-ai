@@ -37,6 +37,7 @@ declare namespace _ZoteroTypes {
       "floatingBot": boolean;
       "floatingBotPosition": string;
       "floatingBotCharacter": string;
+      "floatingBotCustomCharacters": string;
     };
   }
 }

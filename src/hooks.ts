@@ -25,6 +25,7 @@ import {
 import { buildStartupDiagnostic } from "./utils/startupDiagnostics";
 import { registerPreferencesPane } from "./modules/preferencesPane";
 import { registerBotSettings } from "./modules/botSettings";
+import { registerBotCharacterEditor } from "./modules/botCharacterEditor";
 import {
   registerReadingStatus,
   unregisterReadingStatus,
@@ -309,6 +310,13 @@ async function onPrefsEvent(type: string, data: { [key: string]: any }) {
   }
 }
 
+/** The bot's character editor window, addon/content/botCharacterEditor.xhtml. */
+function onBotEditorEvent(type: string, data: { [key: string]: any }) {
+  if (type === "load" && data.window) {
+    registerBotCharacterEditor(data.window as Window);
+  }
+}
+
 export default {
   onStartup,
   onShutdown,
@@ -316,4 +324,5 @@ export default {
   onMainWindowUnload,
   onNotify,
   onPrefsEvent,
+  onBotEditorEvent,
 };

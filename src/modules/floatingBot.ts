@@ -26,8 +26,9 @@ import {
   faceMask,
   plateColours,
 } from "./botArt";
+import { addCustomCharacter } from "./botCharacterEditor";
 import {
-  BOT_CHARACTERS,
+  allBotCharacters,
   botCharacterUrl,
   currentBotCharacter,
   hasChosenBotCharacter,
@@ -891,8 +892,20 @@ function styleSheet(): string {
 }
 .paperly-bot-picker-faces {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+  /* Seven to a row; your own characters wrap onto the next. */
+  max-width: ${CHOICE * 7 + 10 * 6}px;
   margin-top: 11px;
+}
+.paperly-bot-choice.is-add {
+  border: 1.5px dashed rgba(244, 237, 230, 0.4);
+  color: rgba(244, 237, 230, 0.75);
+  font: 300 24px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+.paperly-bot-choice.is-add:hover {
+  border-color: rgba(244, 237, 230, 0.8);
+  color: #F4EDE6;
 }
 /* Each face is the character as the bot would wear it, plate and all, at
    ${CHOICE}px (botArt). The ring that marks the chosen one is in that character's
@@ -1299,7 +1312,7 @@ function hop(bot: Bot): void {
 
 /** Shows `id` in every window and remembers it. */
 export function setBotCharacter(id: string): void {
-  const character = BOT_CHARACTERS.find((c) => c.id === id);
+  const character = allBotCharacters().find((c) => c.id === id);
   if (!character) {
     return;
   }
@@ -1392,7 +1405,8 @@ function openPicker(bot: Bot, { firstRun = false } = {}): void {
   const faces = doc.createElement("div");
   faces.className = "paperly-bot-picker-faces";
   faces.setAttribute("role", "radiogroup");
-  for (const character of BOT_CHARACTERS) {
+  const characters = allBotCharacters();
+  for (const character of characters) {
     const choice = doc.createElement("button");
     choice.type = "button";
     choice.className = "paperly-bot-choice";
@@ -1407,6 +1421,19 @@ function openPicker(bot: Bot, { firstRun = false } = {}): void {
     choice.addEventListener("click", () => setBotCharacter(character.id));
     faces.appendChild(choice);
   }
+  // Last, the way to add one of your own. The picker closes first: the editor
+  // is a window of its own, and its result arrives as the chosen face.
+  const add = doc.createElement("button");
+  add.type = "button";
+  add.className = "paperly-bot-choice is-add";
+  add.title = "Add your own character";
+  add.setAttribute("aria-label", "Add your own character");
+  add.textContent = "+";
+  add.addEventListener("click", () => {
+    closePicker(bot, "add");
+    void addCustomCharacter(bot.win);
+  });
+  faces.appendChild(add);
   // Arrows walk the faces and pick as they go, like any radio group.
   const onFacesKey = (event: KeyboardEvent): void => {
     const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[event.key];
@@ -1414,8 +1441,8 @@ function openPicker(bot: Bot, { firstRun = false } = {}): void {
       return;
     }
     event.preventDefault();
-    const index = BOT_CHARACTERS.findIndex((c) => c.id === bot.character.id);
-    const next = BOT_CHARACTERS[(index + step + BOT_CHARACTERS.length) % BOT_CHARACTERS.length];
+    const index = characters.findIndex((c) => c.id === bot.character.id);
+    const next = characters[(index + step + characters.length) % characters.length];
     setBotCharacter(next.id);
     (faces.querySelector(`[data-character="${next.id}"]`) as HTMLElement | null)?.focus();
   };
@@ -1832,19 +1859,35 @@ export function registerFloatingBotMenu(win: Window): void {
   menu.id = CHARACTER_MENU_ID;
   menu.setAttribute("label", "Paperly AI Bot Character");
   const characters = makeXUL("menupopup") as HTMLElement;
-  for (const character of BOT_CHARACTERS) {
-    const choice = makeXUL("menuitem") as HTMLElement;
-    choice.setAttribute("type", "radio");
-    choice.setAttribute("name", "paperly-bot-character");
-    choice.setAttribute("label", character.name);
-    choice.dataset.character = character.id;
-    choice.addEventListener("command", () => {
-      setBotCharacter(character.id);
-      // Picking a face for a bot that is put away is asking to see it.
+  // Built each time it opens, because the user's own characters come and go.
+  characters.addEventListener("popupshowing", (event: Event) => {
+    if (event.target !== characters) {
+      return;
+    }
+    characters.textContent = "";
+    const current = currentBotCharacter().id;
+    for (const character of allBotCharacters()) {
+      const choice = makeXUL("menuitem") as HTMLElement;
+      choice.setAttribute("type", "radio");
+      choice.setAttribute("name", "paperly-bot-character");
+      choice.setAttribute("label", character.name);
+      choice.setAttribute("checked", character.id === current ? "true" : "false");
+      choice.addEventListener("command", () => {
+        setBotCharacter(character.id);
+        // Picking a face for a bot that is put away is asking to see it.
+        void restoreFloatingBot(win);
+      });
+      characters.appendChild(choice);
+    }
+    characters.appendChild(makeXUL("menuseparator"));
+    const add = makeXUL("menuitem") as HTMLElement;
+    add.setAttribute("label", "Add Your Own Character\u2026");
+    add.addEventListener("command", () => {
       void restoreFloatingBot(win);
+      void addCustomCharacter(win);
     });
-    characters.appendChild(choice);
-  }
+    characters.appendChild(add);
+  });
   menu.appendChild(characters);
 
   popup.addEventListener("popupshowing", (event: Event) => {
@@ -1852,10 +1895,6 @@ export function registerFloatingBotMenu(win: Window): void {
       return;
     }
     item.setAttribute("checked", isFloatingBotEnabled() ? "true" : "false");
-    const current = currentBotCharacter().id;
-    for (const choice of Array.from(characters.children) as HTMLElement[]) {
-      choice.setAttribute("checked", choice.dataset.character === current ? "true" : "false");
-    }
   });
   popup.append(item, menu);
 }

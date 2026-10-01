@@ -37,3 +37,4 @@ pref("extensions.zotero.zotero-webai.readerNoteEmojiSkin", 0);
 pref("extensions.zotero.zotero-webai.floatingBot", true);
 pref("extensions.zotero.zotero-webai.floatingBotPosition", "");
 pref("extensions.zotero.zotero-webai.floatingBotCharacter", "");
+pref("extensions.zotero.zotero-webai.floatingBotCustomCharacters", "");

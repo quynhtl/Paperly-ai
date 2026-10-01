@@ -290,6 +290,7 @@ Anya is one of several characters. The list is
 | The first-run offer | `installFloatingBot`, `PICKER_DELAY` after the bot appears, while the pref is still empty |
 | The picker | `openPicker`, beside the bubble, a sibling of the root with its own hole in the dock |
 | Changing later | the ↻ button on the bot (top left, under the pointer), a right-click on it, **View → Paperly AI Bot Character**, or **Settings → Paperly AI → Floating Bot** (`botSettings.ts`) |
+| The user's own | the (+) in the picker, in Settings and in that menu → a picture → `botCharacterEditor.ts`; faces in `<profile>/paperly-bot/`, the list in pref `floatingBotCustomCharacters`; removed with the × on their tile in Settings |
 
 **A swap changes nothing that moves.** The spring, the wind, the bob, the
 hover swell and the clip budget are the same for every face. Only paint
@@ -319,6 +320,33 @@ choosing. So the picker is placed by hand beside the bot, follows it during a
 carry, and adds its own rectangle to the clip, padded by `PICKER_BLEED` for
 its shadow. It closes on Done, Escape or any press in the window outside the
 dock, and closing it settles a first run, so it is only offered once.
+
+## Your own characters
+
+The (+) asks for a picture and opens `addon/content/botCharacterEditor.xhtml`,
+a small window that `botCharacterEditor.ts` fills in through
+`hooks.onBotEditorEvent`. The stage shows the whole 112px frame with the disc
+marked; the picture is dragged and zoomed in it (wheel or slider, on a log
+scale, zooming about the pointer), and the preview beside it is the same
+`botArt` rendition the picker uses, so what it shows is what the bot shows.
+
+**Taking the background off is the cheap half of `matte.py`.** No model ships
+with the plugin, so `botImage.cutPlainBackground` floods in from the picture's
+edge over pixels near the edge's median colour and un-mixes the ring next to
+the flood. On a plain background that is clean; on anything else the editor
+says nothing came off and keeps the picture framed. With the background off,
+"Let the head come out" decides `popout`.
+
+**The colour** is the hue most of the face's clearly coloured pixels share
+(`botImage.dominantTint`), or one of the swatches. Grey pictures get Anya's
+rose.
+
+**On Add**, the 224px face is written to `<profile>/paperly-bot/<id>.png`,
+the entry joins `floatingBotCustomCharacters`, and it becomes the chosen face.
+Removing one deletes its file, and if it was being worn the bot goes back to
+the default. Pictures are worked on at most 1600px wide, and brought down in
+halves (`levelFor`), because Gecko's canvas scaling is bilinear only and a
+large picture drawn straight down to 224px shimmers.
 
 ## Depth
 
