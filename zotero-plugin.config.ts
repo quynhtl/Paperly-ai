@@ -14,7 +14,10 @@ const config: ReturnType<typeof defineConfig> = defineConfig({
   id: pkg.config.addonID,
   namespace: pkg.config.addonRef,
   xpiName,
-  updateURL: "https://github.com/{{owner}}/{{repo}}/releases/download/release/update.json",
+  // Updates come through the Paperly marketplace (the paperly-extensions
+  // repository), which checks every release before offering it; it refuses a
+  // listed extension whose update_url points anywhere else.
+  updateURL: "https://quynhtl.github.io/paperly-extensions/updates/paperly-ai@paperly.org.json",
   xpiDownloadLink:
     "https://github.com/{{owner}}/{{repo}}/releases/download/v{{version}}/{{xpiName}}.xpi",
 
