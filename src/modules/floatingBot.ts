@@ -12,7 +12,18 @@
 // the hover lift, the press squash, the tilt while it is carried -- moves
 // inside a fixed 96px box, so the hole cut in the dock only has to be redrawn
 // when the bot is somewhere new, not while it is being animated.
-import { config } from "../../package.json";
+//
+// Whose face it wears is botCharacters' business; this module only paints it.
+// Swapping faces swaps a background image and a tint, and nothing that moves,
+// so every character gets the same spring, wind and bob.
+import {
+  BOT_CHARACTERS,
+  botCharacterUrl,
+  currentBotCharacter,
+  hasChosenBotCharacter,
+  saveBotCharacter,
+  type BotCharacter,
+} from "./botCharacters";
 import {
   destroyOverlayDock,
   destroyOverlayDocks,
@@ -30,15 +41,28 @@ import { getPref, setPref } from "../utils/prefs";
 
 const ROOT_ID = "paperly-bot";
 const MENU_ITEM_ID = "zotero-webai-bot-menuitem";
+const CHARACTER_MENU_ID = "zotero-webai-bot-character-menu";
 const ENABLED_PREF = "floatingBot";
 const POSITION_PREF = "floatingBotPosition";
 
-// Her face, as a strip of three frames -- open, half, shut -- laid side by
-// side. One file rather than three: one decode, and no frame can go missing on
-// its own. 192 is the frame's 2x, because the bot draws it at 96 CSS px and
-// grows it to 1.07 under the pointer.
-const FACE_SRC = `chrome://${config.addonRef}/content/icons/bot-192.png`;
-const FACE_FRAMES = 3;
+// A face is a strip of frames laid side by side, each 192px -- the 2x of the
+// 96 CSS px the bot draws one at, grown to 1.06 under the pointer. Anya's has
+// three, open, half and shut, which is how she blinks; a face with one frame
+// holds still. See botCharacters for the list.
+
+/** One face in the picker, in CSS px. */
+const CHOICE = 44;
+/** How long after the bot appears that a first-run picker opens beside it. */
+const PICKER_DELAY = 700;
+/** The picker's distance from the bubble's glass, and from the window's edges. */
+const PICKER_GAP = 6;
+const PICKER_MARGIN = 8;
+/**
+ * What the picker's hole in the dock reaches past its box: its drop shadow,
+ * blur 22 below an 8px offset. Unlike the bot's, this budget is spent only
+ * while the picker is open, so it is spent in full rather than to the pixel.
+ */
+const PICKER_BLEED = 24;
 
 /**
  * The widget's box, and the bubble drawn inside it.
@@ -126,6 +150,11 @@ interface Bot {
   root: HTMLElement;
   body: HTMLElement;
   tip: HTMLElement;
+  /** Who is being shown, which during a pick may run ahead of the pref. */
+  character: BotCharacter;
+  /** The companion picker, while it is open. */
+  picker: HTMLElement | null;
+  closePicker: (() => void) | null;
   /** Where the box is: what the clip is cut from, and what gets saved. */
   x: number;
   y: number;
@@ -209,6 +238,7 @@ function place(bot: Bot, x: number, y: number): void {
     bot.px = at.x;
     bot.py = at.y;
   }
+  positionPicker(bot);
   syncClip(bot);
 }
 
@@ -237,6 +267,17 @@ function syncClip(bot: Bot): void {
     if (box.width > 0 && box.height > 0) {
       boxes.push(box);
     }
+  }
+  if (bot.picker) {
+    // From its layout box, not getBoundingClientRect: while it opens it is
+    // scaled down, and a hole cut to that would crop it once it has grown.
+    const picker = bot.picker;
+    boxes.push({
+      left: picker.offsetLeft - PICKER_BLEED,
+      top: picker.offsetTop - PICKER_BLEED,
+      width: picker.offsetWidth + PICKER_BLEED * 2,
+      height: picker.offsetHeight + PICKER_BLEED * 2,
+    });
   }
   setDockClip(bot.dock, boxes);
 }
@@ -343,7 +384,7 @@ function stopMotion(bot: Bot): void {
 
 // ------------------------------------------------------------------ styles --
 
-function styleSheet(faceUrl: string): string {
+function styleSheet(): string {
   return `
 #${ROOT_ID} {
   position: fixed;
@@ -498,18 +539,30 @@ function styleSheet(faceUrl: string): string {
     0 0 12px rgba(122, 200, 230, 0.48);
 }
 
-/* Her face: three frames in one strip, stepped through rather than faded
-   between, because a blink is two held frames and not a cross-fade. */
+/* The face, from whichever character is chosen; see applyCharacter. A strip
+   of frames is stepped through rather than faded between, because a blink is
+   two held frames and not a cross-fade -- and only a strip blinks at all: a
+   one-frame face stepped to "half" would show empty glass. */
 .paperly-bot-face {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background-image: url("${faceUrl}");
+  background-image: var(--paperly-face);
   background-repeat: no-repeat;
-  background-size: ${ART * FACE_FRAMES}px ${ART}px;
+  background-size: calc(${ART}px * var(--paperly-face-frames, 1)) ${ART}px;
   background-position: 0 0;
-  animation: paperly-bot-blink 5.4s step-end infinite;
   pointer-events: none;
+}
+#${ROOT_ID}[data-blink] .paperly-bot-face {
+  animation: paperly-bot-blink 5.4s step-end infinite;
+}
+/* A face drawn with its own background hides the glass behind it, and the
+   shading that made the glass a sphere goes with it. So that shading is put
+   back over the picture: dusk along the bottom, light along the top. */
+#${ROOT_ID}[data-opaque] .paperly-bot-face {
+  box-shadow:
+    inset 0 -12px 18px rgba(24, 16, 48, 0.36),
+    inset 0 7px 14px rgba(255, 255, 255, 0.16);
 }
 
 /* The catchlight, and the small answering glint low on the far side. This is
@@ -663,6 +716,137 @@ function styleSheet(faceUrl: string): string {
   pointer-events: none;
 }
 
+/* Anya's rose is written out above, and she keeps it to the digit. Anyone else
+   brings a tint of their own, which takes the rose's place in the bloom, the
+   rings, the outer glow and the click ripple -- the parts that are the
+   character's colour rather than the glass's. Never while the panel is open:
+   steel blue means "open", whoever is in the bubble. */
+#${ROOT_ID}[data-tint]:not(.is-active) .paperly-bot-glow {
+  background:
+    radial-gradient(circle at 50% 46%,
+      rgba(var(--paperly-tint), 0.30) 0%,
+      rgba(var(--paperly-tint), 0.15) 44%,
+      rgba(var(--paperly-tint), 0.06) 58%,
+      rgba(var(--paperly-tint), 0) 68%);
+}
+#${ROOT_ID}[data-tint]:not(.is-active) .paperly-bot-bubble {
+  box-shadow:
+    inset 0 7px 14px rgba(255, 255, 255, 0.40),
+    inset 0 -12px 18px rgba(142, 128, 196, 0.32),
+    0 4px 12px rgba(74, 64, 124, 0.30),
+    0 0 12px rgba(var(--paperly-tint), 0.40);
+}
+#${ROOT_ID}[data-tint] .paperly-bot-orbit .ring-far {
+  stroke: rgba(var(--paperly-tint), 0.45);
+}
+#${ROOT_ID}[data-tint] .paperly-bot-orbit .ring-near {
+  stroke: rgba(var(--paperly-tint-deep), 0.62);
+}
+#${ROOT_ID}[data-tint]:not(.is-active) .paperly-bot-pulse {
+  border-color: rgba(var(--paperly-tint), 0.85);
+}
+
+/* The companion picker. It stands beside the bot rather than inside it: the
+   root starts a drag on every press and swells on every hover, and neither
+   should happen while the pointer is choosing a face. So it is placed by hand
+   (positionPicker), follows the bot when it is carried, and cuts its own hole
+   in the dock the way the tip does. */
+.paperly-bot-picker {
+  position: fixed;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(20, 24, 44, 0.96);
+  color: #F4EDE6;
+  box-shadow: 0 8px 22px rgba(8, 10, 24, 0.45);
+  font: 500 12px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 160ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.paperly-bot-picker.is-shown {
+  opacity: 1;
+  transform: scale(1);
+}
+.paperly-bot-picker-title {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.paperly-bot-picker-hint {
+  margin-top: 1px;
+  color: rgba(244, 237, 230, 0.55);
+  font-size: 11px;
+}
+.paperly-bot-picker-faces {
+  display: flex;
+  gap: 10px;
+  margin-top: 11px;
+}
+/* Each face is the character's own file, first frame, at ${CHOICE}px. The ring
+   that marks the chosen one is in that character's tint, so the picker already
+   shows the colour the bubble is about to take. */
+.paperly-bot-choice {
+  width: ${CHOICE}px;
+  height: ${CHOICE}px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.06);
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
+  cursor: default;
+  transition:
+    transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 160ms ease;
+}
+.paperly-bot-choice:hover {
+  transform: scale(1.1);
+}
+.paperly-bot-choice:active {
+  transform: scale(0.94);
+}
+.paperly-bot-choice[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px rgba(20, 24, 44, 1),
+    0 0 0 4px rgb(var(--paperly-choice-tint, 246, 176, 204));
+}
+.paperly-bot-choice:focus-visible {
+  outline: 2px solid #7BD0EC;
+  outline-offset: 5px;
+}
+.paperly-bot-picker-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 11px;
+}
+.paperly-bot-picker-name {
+  color: rgba(244, 237, 230, 0.75);
+}
+.paperly-bot-picker-done {
+  padding: 4px 13px;
+  border: 0;
+  border-radius: 7px;
+  background: #F4EDE6;
+  color: #14182C;
+  font: inherit;
+  font-weight: 600;
+  cursor: default;
+}
+.paperly-bot-picker-done:hover {
+  background: #FFFFFF;
+}
+.paperly-bot-picker-done:focus-visible {
+  outline: 2px solid #7BD0EC;
+  outline-offset: 2px;
+}
+
 /* Twice a cycle, at 38% and 93%, so the gaps between blinks are 3.0s and 2.4s
    rather than one even beat -- an even beat is the thing that reads as a
    machine ticking rather than as someone blinking. Each blink is 43ms of
@@ -729,6 +913,10 @@ function styleSheet(faceUrl: string): string {
   .paperly-bot-pulse.is-ringing {
     animation: none;
   }
+  .paperly-bot-picker,
+  .paperly-bot-choice {
+    transition: none;
+  }
 }
 `;
 }
@@ -769,7 +957,7 @@ function buildBot(dock: OverlayDock, win: Window, host: HTMLElement): Bot {
 
   const style = doc.createElement("style");
   style.id = `${ROOT_ID}-style`;
-  style.textContent = styleSheet(FACE_SRC);
+  style.textContent = styleSheet();
   (doc.head || doc.documentElement)?.appendChild(style);
 
   const root = doc.createElement("div");
@@ -843,6 +1031,9 @@ function buildBot(dock: OverlayDock, win: Window, host: HTMLElement): Bot {
     pressed: false,
     hovering: false,
     tipTimer: null,
+    character: currentBotCharacter(),
+    picker: null,
+    closePicker: null,
     teardown: [
       () => {
         root.remove();
@@ -868,6 +1059,10 @@ function setTip(bot: Bot): void {
 }
 
 function showTip(bot: Bot): void {
+  // The picker stands on the same side the tip would, level with it.
+  if (bot.picker) {
+    return;
+  }
   if (bot.tipTimer !== null) {
     bot.win.clearTimeout(bot.tipTimer);
     bot.tipTimer = null;
@@ -911,6 +1106,229 @@ function pulse(bot: Bot): void {
   // continuing the old one.
   void el.offsetWidth;
   el.classList.add("is-ringing");
+}
+
+// -------------------------------------------------------------- character --
+
+/** Dresses the bot as `character`: face, frames and tint. Nothing that moves. */
+function applyCharacter(bot: Bot, character: BotCharacter): void {
+  bot.character = character;
+  const root = bot.root;
+  root.style.setProperty("--paperly-face", `url("${botCharacterUrl(character)}")`);
+  root.style.setProperty("--paperly-face-frames", String(character.frames));
+  root.toggleAttribute("data-blink", character.frames > 1);
+  root.toggleAttribute("data-opaque", Boolean(character.opaque));
+  if (character.tint) {
+    const [r, g, b] = character.tint;
+    // The near ring is drawn a shade deeper than the far one, as Anya's are.
+    const deep = character.tint.map((c) => Math.round(c * 0.86));
+    root.setAttribute("data-tint", "");
+    root.style.setProperty("--paperly-tint", `${r}, ${g}, ${b}`);
+    root.style.setProperty("--paperly-tint-deep", deep.join(", "));
+  } else {
+    root.removeAttribute("data-tint");
+    root.style.removeProperty("--paperly-tint");
+    root.style.removeProperty("--paperly-tint-deep");
+  }
+  syncPickerChoice(bot);
+}
+
+/**
+ * A hop: the bubble is thrown upward and the spring brings it home.
+ *
+ * What a new face arrives with, so a swap reads as something happening to the
+ * bubble rather than a picture being changed under it. It is the carry's spring
+ * and nothing new: the velocity is all that is set, and the stretch, the wobble
+ * and the wind follow from it.
+ */
+function hop(bot: Bot): void {
+  pulse(bot);
+  if (wantsStill(bot)) {
+    return;
+  }
+  bot.vy -= 9;
+  startMotion(bot);
+  // The resting clip has no room for a wobble; see MOTION_BLEED.
+  syncClip(bot);
+}
+
+/** Shows `id` in every window and remembers it. */
+export function setBotCharacter(id: string): void {
+  const character = BOT_CHARACTERS.find((c) => c.id === id);
+  if (!character) {
+    return;
+  }
+  saveBotCharacter(id);
+  for (const bot of bots.values()) {
+    const changed = bot.character.id !== id;
+    applyCharacter(bot, character);
+    if (changed || bot.picker) {
+      hop(bot);
+    }
+  }
+}
+
+function syncPickerChoice(bot: Bot): void {
+  const picker = bot.picker;
+  if (!picker) {
+    return;
+  }
+  for (const choice of Array.from(
+    picker.querySelectorAll(".paperly-bot-choice"),
+  ) as HTMLElement[]) {
+    const chosen = choice.dataset.character === bot.character.id;
+    choice.setAttribute("aria-checked", String(chosen));
+    choice.tabIndex = chosen ? 0 : -1;
+  }
+  const name = picker.querySelector(".paperly-bot-picker-name");
+  if (name) {
+    name.textContent = bot.character.name;
+  }
+}
+
+/**
+ * Beside the bubble, on whichever side has the room -- the tip's rule -- and
+ * level with its middle, then pushed back inside the window if that leaves it.
+ */
+function positionPicker(bot: Bot): void {
+  const picker = bot.picker;
+  if (!picker) {
+    return;
+  }
+  const { width, height } = viewport(bot);
+  const w = picker.offsetWidth;
+  const h = picker.offsetHeight;
+  const onRight = bot.x + BOX / 2 < width / 2;
+  const left = onRight ? bot.x + BOX - PAD + PICKER_GAP : bot.x + PAD - PICKER_GAP - w;
+  const top = bot.y + BOX / 2 - h / 2;
+  const maxLeft = Math.max(PICKER_MARGIN, width - w - PICKER_MARGIN);
+  const maxTop = Math.max(PICKER_MARGIN, height - h - PICKER_MARGIN);
+  picker.style.left = `${Math.round(Math.min(Math.max(left, PICKER_MARGIN), maxLeft))}px`;
+  picker.style.top = `${Math.round(Math.min(Math.max(top, PICKER_MARGIN), maxTop))}px`;
+  picker.style.transformOrigin = onRight ? "center left" : "center right";
+}
+
+/**
+ * The companion picker: every character's face, the chosen one ringed.
+ *
+ * A pick is shown at once -- the bubble hops and comes back wearing the new
+ * face -- and saved at once, so there is nothing to confirm; Done only closes.
+ * Closing in any way also settles a first run, so the picker is offered once
+ * and does not come back to ask again.
+ */
+function openPicker(bot: Bot): void {
+  if (bot.picker) {
+    return;
+  }
+  hideTip(bot);
+  const doc = bot.dock.doc;
+  const chromeDoc = bot.win.document;
+  // Where the keyboard was, to hand it back: focusing a face moves focus into
+  // the dock's frame, and left there it would swallow Zotero's shortcuts.
+  const focusedBefore = chromeDoc.activeElement as HTMLElement | null;
+
+  const picker = doc.createElement("div");
+  picker.className = "paperly-bot-picker";
+  picker.setAttribute("role", "dialog");
+  picker.setAttribute("aria-label", "Choose the bot's character");
+
+  const title = doc.createElement("div");
+  title.className = "paperly-bot-picker-title";
+  title.textContent = "Pick a companion";
+  const hint = doc.createElement("div");
+  hint.className = "paperly-bot-picker-hint";
+  hint.textContent = "Right-click the bot to change it later";
+
+  const faces = doc.createElement("div");
+  faces.className = "paperly-bot-picker-faces";
+  faces.setAttribute("role", "radiogroup");
+  for (const character of BOT_CHARACTERS) {
+    const choice = doc.createElement("button");
+    choice.type = "button";
+    choice.className = "paperly-bot-choice";
+    choice.dataset.character = character.id;
+    choice.setAttribute("role", "radio");
+    choice.setAttribute("aria-label", character.name);
+    choice.title = character.name;
+    choice.style.backgroundImage = `url("${botCharacterUrl(character)}")`;
+    choice.style.backgroundSize = `${CHOICE * character.frames}px ${CHOICE}px`;
+    if (character.tint) {
+      choice.style.setProperty("--paperly-choice-tint", character.tint.join(", "));
+    }
+    choice.addEventListener("click", () => setBotCharacter(character.id));
+    faces.appendChild(choice);
+  }
+  // Arrows walk the faces and pick as they go, like any radio group.
+  const onFacesKey = (event: KeyboardEvent): void => {
+    const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[event.key];
+    if (!step) {
+      return;
+    }
+    event.preventDefault();
+    const index = BOT_CHARACTERS.findIndex((c) => c.id === bot.character.id);
+    const next = BOT_CHARACTERS[(index + step + BOT_CHARACTERS.length) % BOT_CHARACTERS.length];
+    setBotCharacter(next.id);
+    (faces.querySelector(`[data-character="${next.id}"]`) as HTMLElement | null)?.focus();
+  };
+  faces.addEventListener("keydown", onFacesKey);
+
+  const foot = doc.createElement("div");
+  foot.className = "paperly-bot-picker-foot";
+  const name = doc.createElement("span");
+  name.className = "paperly-bot-picker-name";
+  const done = doc.createElement("button");
+  done.type = "button";
+  done.className = "paperly-bot-picker-done";
+  done.textContent = "Done";
+  done.addEventListener("click", () => closePicker(bot));
+  foot.append(name, done);
+
+  picker.append(title, hint, faces, foot);
+  // A sibling of the root, so nothing the root does to the pointer reaches it.
+  bot.root.after(picker);
+  bot.picker = picker;
+  syncPickerChoice(bot);
+  positionPicker(bot);
+  syncClip(bot);
+  // A frame later, so it opens from the scaled-down state instead of starting
+  // there already grown.
+  bot.win.requestAnimationFrame(() => picker.classList.add("is-shown"));
+
+  const onKey = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") {
+      closePicker(bot);
+    }
+  };
+  // A press in the window itself is a press outside the picker: the dock's
+  // frame is a separate document, so its own presses never arrive here.
+  const onOutside = (): void => closePicker(bot);
+  doc.addEventListener("keydown", onKey);
+  bot.win.addEventListener("pointerdown", onOutside, true);
+
+  bot.closePicker = () => {
+    doc.removeEventListener("keydown", onKey);
+    bot.win.removeEventListener("pointerdown", onOutside, true);
+    picker.remove();
+    if (chromeDoc.activeElement === bot.dock.frame) {
+      focusedBefore?.focus?.();
+    }
+  };
+
+  (faces.querySelector('[aria-checked="true"]') as HTMLElement | null)?.focus();
+}
+
+function closePicker(bot: Bot): void {
+  if (!bot.picker) {
+    return;
+  }
+  const close = bot.closePicker;
+  bot.picker = null;
+  bot.closePicker = null;
+  close?.();
+  if (!hasChosenBotCharacter()) {
+    saveBotCharacter(bot.character.id);
+  }
+  syncClip(bot);
 }
 
 /**
@@ -967,6 +1385,7 @@ function attachPointer(bot: Bot): void {
       bot.y = moveEvent.clientY - grabY;
       root.style.left = `${Math.round(bot.x)}px`;
       root.style.top = `${Math.round(bot.y)}px`;
+      positionPicker(bot);
     };
 
     const onUp = (upEvent: PointerEvent): void => {
@@ -1018,11 +1437,16 @@ function attachPointer(bot: Bot): void {
     }
     hideTip(bot);
   };
-  // There is no chrome context menu worth showing on a widget this size. It
-  // used to answer "how do I put this away" with a pointer to the View menu;
-  // the close button does that now, so there is nothing left to say.
+  // No chrome context menu: there is nothing on one worth showing on a widget
+  // this size. A right-click opens the companion picker instead -- the one thing
+  // about the bot that is a choice rather than a gesture.
   const onContext = (event: Event): void => {
     event.preventDefault();
+    if (bot.picker) {
+      closePicker(bot);
+    } else {
+      openPicker(bot);
+    }
   };
 
   root.addEventListener("pointerdown", onDown);
@@ -1057,6 +1481,7 @@ export async function installFloatingBot(win: Window): Promise<void> {
 
   const bot = buildBot(dock, win, host);
   bots.set(win, bot);
+  applyCharacter(bot, currentBotCharacter());
   setTip(bot);
   setActive(bot, isWebAIColumnOpen(win));
   attachPointer(bot);
@@ -1083,6 +1508,16 @@ export async function installFloatingBot(win: Window): Promise<void> {
     }
   });
   bot.teardown.push(unsubscribe);
+
+  // First appearance: offer the choice beside her, once she has settled in.
+  if (!hasChosenBotCharacter()) {
+    const timer = win.setTimeout(() => {
+      if (bots.get(win) === bot && !hasChosenBotCharacter()) {
+        openPicker(bot);
+      }
+    }, PICKER_DELAY);
+    bot.teardown.push(() => win.clearTimeout(timer));
+  }
 }
 
 export function uninstallFloatingBot(win: Window): void {
@@ -1094,6 +1529,14 @@ export function uninstallFloatingBot(win: Window): void {
     return;
   }
   bots.delete(win);
+  // Torn down, not dismissed: a window closing is no answer to the question.
+  try {
+    bot.closePicker?.();
+  } catch {
+    // The window may already be gone, and with it the focus there was to return.
+  }
+  bot.picker = null;
+  bot.closePicker = null;
   if (bot.frame !== null) {
     try {
       win.cancelAnimationFrame(bot.frame);
@@ -1181,12 +1624,42 @@ export function registerFloatingBotMenu(win: Window): void {
   item.addEventListener("command", () => {
     void setFloatingBotEnabled(win, !isFloatingBotEnabled());
   });
-  popup.addEventListener("popupshowing", () => {
+
+  // Who the bot is, beside whether it is there at all. The right-click picker
+  // is the quick way; this is the way that can be found by looking.
+  const menu = makeXUL("menu") as HTMLElement;
+  menu.id = CHARACTER_MENU_ID;
+  menu.setAttribute("label", "Paperly AI Bot Character");
+  const characters = makeXUL("menupopup") as HTMLElement;
+  for (const character of BOT_CHARACTERS) {
+    const choice = makeXUL("menuitem") as HTMLElement;
+    choice.setAttribute("type", "radio");
+    choice.setAttribute("name", "paperly-bot-character");
+    choice.setAttribute("label", character.name);
+    choice.dataset.character = character.id;
+    choice.addEventListener("command", () => {
+      setBotCharacter(character.id);
+      // Picking a face for a bot that is put away is asking to see it.
+      void restoreFloatingBot(win);
+    });
+    characters.appendChild(choice);
+  }
+  menu.appendChild(characters);
+
+  popup.addEventListener("popupshowing", (event: Event) => {
+    if (event.target !== popup) {
+      return;
+    }
     item.setAttribute("checked", isFloatingBotEnabled() ? "true" : "false");
+    const current = currentBotCharacter().id;
+    for (const choice of Array.from(characters.children) as HTMLElement[]) {
+      choice.setAttribute("checked", choice.dataset.character === current ? "true" : "false");
+    }
   });
-  popup.appendChild(item);
+  popup.append(item, menu);
 }
 
 export function removeFloatingBotMenu(win: Window): void {
   win.document.getElementById(MENU_ITEM_ID)?.remove();
+  win.document.getElementById(CHARACTER_MENU_ID)?.remove();
 }

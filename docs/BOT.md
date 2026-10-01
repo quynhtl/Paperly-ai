@@ -274,6 +274,47 @@ are kept faint, and rose rather than white so they read on a cream page as well
 as on a dark toolbar — a bubble with a bright HUD around it stops reading as
 glass.
 
+## Who is in the bubble
+
+Anya is one of several characters. The list is
+`assets/bot/characters.json`, and `assets/bot/README.md` says how to add one.
+
+| Thing | Where |
+| --- | --- |
+| The list, and the chosen one | `botCharacters.ts`; pref `floatingBotCharacter`, empty until someone chooses |
+| Wearing a face | `applyCharacter`: a background image, a frame count, a tint, as properties and attributes on the root |
+| The first-run offer | `installFloatingBot`, `PICKER_DELAY` after the bot appears, while the pref is still empty |
+| The picker | `openPicker`, beside the bubble, a sibling of the root with its own hole in the dock |
+| Changing later | right-click the bot, or **View → Paperly AI Bot Character** |
+
+**A swap changes nothing that moves.** The spring, the wind, the bob, the
+hover swell and the clip budget are the same for every face. Only paint
+changes: `--paperly-face`, the strip's frame count, and a tint. So nothing in
+*The box never changes size* has to be re-measured for a new character.
+
+**Only a strip blinks.** `data-blink` is set for faces with more than one
+frame. Stepping a one-frame face to "half" would show empty glass.
+
+**Anya keeps her rose to the digit.** The tint rules are all
+`[data-tint]:not(.is-active)` overrides written after her colours, and she has
+no tint. Anyone with a tint takes over the bloom, both rings, the outer glow
+and the ripple. Never the active state, which stays steel blue for everyone.
+
+**A face with its own background hides the glass**, and the glass's shading
+goes with it. `data-opaque` paints that shading over the picture as inset
+shadows on the face.
+
+**The new face arrives with a hop.** `hop` throws the bubble upward through
+the carry's own spring (`vy -= 9`) and rings the ripple. It is the same motion
+path as a drag, so it also inflates the clip while it runs.
+
+**The picker is not inside the root.** The root starts a drag on every press
+and swells on every hover, and neither should happen while the pointer is
+choosing. So the picker is placed by hand beside the bot, follows it during a
+carry, and adds its own rectangle to the clip, padded by `PICKER_BLEED` for
+its shadow. It closes on Done, Escape or any press in the window outside the
+dock, and closing it settles a first run, so it is only offered once.
+
 ## Traps
 
 **`prefers-reduced-motion` is honoured, except the blink.** The bob, the rings,

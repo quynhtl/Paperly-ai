@@ -1,0 +1,134 @@
+<!doctype html>
+<meta charset="utf-8">
+<!--
+  One character's face for the floating bot, as a single round frame.
+  build-portraits.sh screenshots this once per entry in characters.json.
+
+  Query: ?src=<file>&cx=<px>&cy=<px>&r=<px>&field=<white|>&size=<px>
+
+  The crop is a circle in the source's own pixels: its centre and radius. A
+  circle and not a box, because the bot shows a disc -- whatever is outside
+  this circle is never seen, so it is what the numbers are read off.
+
+  field=white is for art drawn on a white page. The page is cut away, so the
+  head floats in the glass the way Anya's does. A plain "white -> clear" would
+  also take the highlights in the hair and a pale face with it, so the white is
+  flooded in from the edge of the crop: only white that touches the edge goes,
+  and anything the linework encloses stays. The ring of pixels next to the
+  flood is half page and half line; it is un-blended from white rather than
+  kept or dropped, which is what stops a pale fringe showing on a dark page.
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden }
+  canvas { display: block }
+</style>
+<canvas id="out"></canvas>
+<script>
+const q     = new URLSearchParams(location.search);
+const SIZE  = +(q.get("size") || 192);
+const CX    = +q.get("cx");
+const CY    = +q.get("cy");
+const R     = +q.get("r");
+const FIELD = q.get("field") || "";
+
+// Anything this light on every channel might be the page. Not only the page:
+// the brightest of Nezuko's forehead measures 242 -- so what keeps a face is
+// the flood, which cannot reach it through the linework, not this number.
+const PAGE_MIN = 232;
+// The ring next to the flood that is half page and half line, in source px.
+const BAND = 2;
+
+function cutPage(g, D) {
+  const image = g.getImageData(0, 0, D, D);
+  const px = image.data;
+  const page = new Uint8Array(D * D);
+  const field = new Uint8Array(D * D);
+  for (let i = 0; i < D * D; i++) {
+    const o = i * 4;
+    if (Math.min(px[o], px[o + 1], px[o + 2]) >= PAGE_MIN) { page[i] = 1; }
+  }
+  const stack = [];
+  const push = (x, y) => {
+    const i = x + y * D;
+    if (page[i] && !field[i]) { field[i] = 1; stack.push(i); }
+  };
+  for (let k = 0; k < D; k++) { push(k, 0); push(k, D - 1); push(0, k); push(D - 1, k); }
+  for (let s = 0; s < stack.length; s++) {
+    const i = stack[s], x = i % D, y = (i - x) / D;
+    if (x > 0) { push(x - 1, y); }
+    if (x < D - 1) { push(x + 1, y); }
+    if (y > 0) { push(x, y - 1); }
+    if (y < D - 1) { push(x, y + 1); }
+  }
+
+  // Grow the flood by BAND to find the ring around it.
+  let near = field;
+  for (let pass = 0; pass < BAND; pass++) {
+    const next = near.slice();
+    for (let y = 0; y < D; y++) {
+      for (let x = 0; x < D; x++) {
+        const i = x + y * D;
+        if (near[i]) { continue; }
+        if ((x > 0 && near[i - 1]) || (x < D - 1 && near[i + 1]) ||
+            (y > 0 && near[i - D]) || (y < D - 1 && near[i + D])) { next[i] = 1; }
+      }
+    }
+    near = next;
+  }
+
+  for (let i = 0; i < D * D; i++) {
+    const o = i * 4;
+    if (field[i]) { px[o + 3] = 0; continue; }
+    if (!near[i]) { continue; }
+    // Colour-to-alpha against white: as opaque as the pixel is far from white,
+    // then the white that was mixed in is taken back out of its colour.
+    const a = Math.min(1, 1.15 * Math.max(255 - px[o], 255 - px[o + 1], 255 - px[o + 2]) / 255);
+    if (a <= 0.001) { px[o + 3] = 0; continue; }
+    for (let c = 0; c < 3; c++) {
+      px[o + c] = Math.max(0, Math.min(255, (px[o + c] - (1 - a) * 255) / a));
+    }
+    px[o + 3] = Math.round(a * 255);
+  }
+  g.putImageData(image, 0, 0);
+}
+
+const img = new Image();
+img.onload = () => {
+  const D = Math.round(R * 2);
+  const crop = document.createElement("canvas");
+  crop.width = crop.height = D;
+  const g = crop.getContext("2d", { willReadFrequently: true });
+  // A crop that runs off the drawing is padded with the drawing's own page.
+  if (FIELD === "white") {
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, D, D);
+  }
+  g.drawImage(img, -(CX - R), -(CY - R));
+  if (FIELD === "white") {
+    cutPage(g, D);
+  }
+
+  // Down in halves: one big step from ~700px to 192 skips most of the source.
+  let cur = crop;
+  while (cur.width / 2 >= SIZE) {
+    const half = document.createElement("canvas");
+    half.width = half.height = Math.round(cur.width / 2);
+    const h = half.getContext("2d");
+    h.imageSmoothingQuality = "high";
+    h.drawImage(cur, 0, 0, half.width, half.height);
+    cur = half;
+  }
+  const out = document.getElementById("out");
+  out.width = out.height = SIZE;
+  const o = out.getContext("2d");
+  o.imageSmoothingQuality = "high";
+  o.drawImage(cur, 0, 0, SIZE, SIZE);
+  // The disc. CSS rounds the bot's face anyway; doing it here as well is what
+  // gives the picker's small copies the same soft edge.
+  o.globalCompositeOperation = "destination-in";
+  o.beginPath();
+  o.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
+  o.fill();
+};
+img.src = q.get("src");
+</script>

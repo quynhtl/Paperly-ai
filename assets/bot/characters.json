@@ -1,0 +1,51 @@
+{
+  "default": "anya",
+  "characters": [
+    {
+      "id": "anya",
+      "name": "Anya",
+      "file": "bot-192.png",
+      "frames": 3
+    },
+    {
+      "id": "nezuko",
+      "name": "Nezuko",
+      "file": "bot-nezuko.png",
+      "frames": 1,
+      "source": "nezuko.jpg",
+      "crop": [294, 288, 228],
+      "field": "white",
+      "tint": [244, 156, 176]
+    },
+    {
+      "id": "gojo",
+      "name": "Gojo",
+      "file": "bot-gojo.png",
+      "frames": 1,
+      "source": "gojo.jpg",
+      "crop": [140, 222, 138],
+      "opaque": true,
+      "tint": [140, 162, 255]
+    },
+    {
+      "id": "naruto",
+      "name": "Naruto",
+      "file": "bot-naruto.png",
+      "frames": 1,
+      "source": "naruto.jpg",
+      "crop": [596, 382, 362],
+      "field": "white",
+      "tint": [255, 172, 84]
+    },
+    {
+      "id": "itachi",
+      "name": "Itachi",
+      "file": "bot-itachi.png",
+      "frames": 1,
+      "source": "itachi.webp",
+      "crop": [325, 430, 265],
+      "opaque": true,
+      "tint": [228, 76, 88]
+    }
+  ]
+}

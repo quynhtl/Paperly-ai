@@ -36,6 +36,7 @@ declare namespace _ZoteroTypes {
       "readerNoteEmojiSkin": number;
       "floatingBot": boolean;
       "floatingBotPosition": string;
+      "floatingBotCharacter": string;
     };
   }
 }
