@@ -1,7 +1,7 @@
 {
   "name": "paperly-ai",
   "type": "module",
-  "version": "0.9.37",
+  "version": "0.9.38",
   "description": "Paperly AI: an AI panel beside the reader, a reading status you can tick from the item list, and a starred collection. A plugin for Paperly.",
   "author": "quynhtl",
   "homepage": "https://github.com/quynhtl/Paperly-ai#readme",
