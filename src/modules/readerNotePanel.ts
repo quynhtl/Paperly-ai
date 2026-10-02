@@ -64,6 +64,7 @@ import {
 } from "../ui/readerNoteFonts";
 import {
   ensureOverlayDock,
+  isInsideDock,
   openDockClip,
   setDockClip,
   destroyOverlayDock,
@@ -272,9 +273,9 @@ function surfaceFor(
 
   // The window's half of the watch that puts the pad's menus away: Zotero's
   // own chrome, which is this document. The guard is not a nicety -- see
-  // insideDock.
+  // isInsideDock.
   const onAway = (event: Event): void => {
-    if (insideDock(surface, event.target)) {
+    if (isInsideDock(surface.dock, event.target)) {
       return;
     }
     closePadOverlays(surface);
@@ -353,27 +354,6 @@ function refreshButtons(): void {
     entry.button.classList.toggle("active", pressed);
     entry.button.setAttribute("aria-pressed", pressed ? "true" : "false");
   }
-}
-
-/**
- * Whether a press landed inside the pad's own frame.
- *
- * A chrome iframe's chrome event handler is the frame element, so a press
- * inside the dock carries on into the window's document -- with the pad's own
- * button still as its target, not the frame. Anything watching the window for
- * presses "outside" the pad therefore has to say what outside means. Measured
- * the hard way: an unguarded watcher fired on every press on the pad and tore
- * the open menu down before its click could run, so no swatch, emoji or "/"
- * entry could be picked at all.
- */
-function insideDock(surface: Surface, target: EventTarget | null): boolean {
-  if (!target) {
-    return false;
-  }
-  if (target === surface.dock.frame || target === surface.doc) {
-    return true;
-  }
-  return (target as Node).ownerDocument === surface.doc;
 }
 
 /** Puts away everything the pad has open, and takes the room back. */

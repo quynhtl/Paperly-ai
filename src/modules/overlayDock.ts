@@ -192,6 +192,27 @@ export function setDockClip(dock: OverlayDock, boxes: ClipBox[]): void {
   dock.frame.style.clipPath = path;
 }
 
+/**
+ * Whether a press landed inside the dock's own frame.
+ *
+ * A chrome iframe's chrome event handler is the frame element, so a press
+ * inside the dock carries on into the window's document -- with the dock's own
+ * button still as its target, not the frame. Anything watching the window for
+ * presses "outside" what a dock shows therefore has to say what outside means.
+ * Measured the hard way, twice: an unguarded watcher fired on every press in
+ * the dock and tore the open menu down before its click could run, so nothing
+ * in it could be picked at all.
+ */
+export function isInsideDock(dock: OverlayDock, target: EventTarget | null): boolean {
+  if (!target) {
+    return false;
+  }
+  if (target === dock.frame || target === dock.doc) {
+    return true;
+  }
+  return (target as Node).ownerDocument === dock.doc;
+}
+
 /** Lets the frame catch everything, for as long as a drag is running. */
 export function openDockClip(dock: OverlayDock): void {
   dock.frame.style.clipPath = "";

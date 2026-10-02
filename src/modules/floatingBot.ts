@@ -39,6 +39,7 @@ import {
   destroyOverlayDock,
   destroyOverlayDocks,
   ensureOverlayDock,
+  isInsideDock,
   openDockClip,
   setDockClip,
   type OverlayDock,
@@ -1476,9 +1477,15 @@ function openPicker(bot: Bot, { firstRun = false } = {}): void {
       closePicker(bot, "escape");
     }
   };
-  // A press in the window itself is a press outside the picker: the dock's
-  // frame is a separate document, so its own presses never arrive here.
-  const onOutside = (): void => closePicker(bot, "outside");
+  // A press in the window itself is a press outside the picker. The dock's own
+  // presses arrive here too, through its frame, and are not: without the guard
+  // a press on a face closed the picker before the face could be clicked.
+  const onOutside = (event: Event): void => {
+    if (isInsideDock(bot.dock, event.target)) {
+      return;
+    }
+    closePicker(bot, "outside");
+  };
   doc.addEventListener("keydown", onKey);
   if (!firstRun) {
     bot.win.addEventListener("pointerdown", onOutside, true);
