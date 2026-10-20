@@ -10,6 +10,7 @@ import { createWindowEventDispatcher } from "./utils/windowLifecycle";
 import {
   registerWebAIColumnMenu,
   removeWebAIColumn,
+  restoreWebAIColumn,
 } from "./modules/webAIColumn";
 import {
   installWebAINewWindowHandler,
@@ -230,6 +231,9 @@ async function onMainWindowLoad(win: Window): Promise<void> {
   }
 
   UIFactory.refreshWindow(win);
+  void restoreWebAIColumn(win).catch((error) => {
+    ztoolkit.log("Failed to restore the Paperly AI column:", error);
+  });
   ztoolkit.log(
     buildStartupDiagnostic({
       addonID: config.addonID,

@@ -34,6 +34,7 @@ declare namespace _ZoteroTypes {
       "readerNoteGeometry": string;
       "readerNoteEmojiRecent": string;
       "readerNoteEmojiSkin": number;
+      "columnOpen": boolean;
       "floatingBot": boolean;
       "floatingBotPosition": string;
       "floatingBotCharacter": string;

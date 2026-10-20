@@ -34,6 +34,10 @@ pref("extensions.zotero.zotero-webai.readerNoteGeometry", "");
 pref("extensions.zotero.zotero-webai.readerNoteEmojiRecent", "");
 pref("extensions.zotero.zotero-webai.readerNoteEmojiSkin", 0);
 
+// The Paperly AI column: open when the window loads, until the user closes it
+// (the bot, View > Paperly AI Panel, or the panel's own close button).
+pref("extensions.zotero.zotero-webai.columnOpen", true);
+
 pref("extensions.zotero.zotero-webai.floatingBot", true);
 pref("extensions.zotero.zotero-webai.floatingBotPosition", "");
 pref("extensions.zotero.zotero-webai.floatingBotCharacter", "");

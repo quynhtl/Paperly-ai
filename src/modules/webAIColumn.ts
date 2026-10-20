@@ -26,6 +26,8 @@ const COLUMN_ID = "zotero-webai-pane";
 const SPLITTER_ID = "zotero-webai-splitter-pane";
 const MOUNT_ID = "zotero-webai-pane-mount";
 const WIDTH_PREF = "columnWidth";
+// Whether the column is showing, kept so the next window load matches it.
+const OPEN_PREF = "columnOpen";
 const DEFAULT_WIDTH = 380;
 const MIN_WIDTH = 280;
 
@@ -357,6 +359,7 @@ export async function openWebAIColumn(win: Window): Promise<boolean> {
   }
   state.column.hidden = false;
   (state.splitter as HTMLElement).hidden = false;
+  setPref(OPEN_PREF, true);
   // Marks the window so the stylesheet can relax Zotero's #tabs-deck floor
   // only while this column is sharing the row.
   win.document.documentElement?.setAttribute("zotero-webai-column", "open");
@@ -373,8 +376,21 @@ export function closeWebAIColumn(win: Window): void {
   rememberWidth(state);
   state.column.hidden = true;
   (state.splitter as HTMLElement).hidden = true;
+  setPref(OPEN_PREF, false);
   win.document.documentElement?.removeAttribute("zotero-webai-column");
   notifyColumnChange(win);
+}
+
+/**
+ * Opens the column on a new window if it was open last time (and on first run).
+ * The column is the only Paperly AI panel, so this is what the user sees at
+ * startup; the bot and View > Paperly AI Panel then toggle this same column.
+ */
+export async function restoreWebAIColumn(win: Window): Promise<void> {
+  if (getPref(OPEN_PREF) === false || isWebAIColumnOpen(win)) {
+    return;
+  }
+  await openWebAIColumn(win);
 }
 
 export async function toggleWebAIColumn(win: Window): Promise<void> {
