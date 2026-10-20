@@ -1,0 +1,7 @@
+{"type": "thread.started", "thread_id": "01a1028f-e404-7aa3-8f7e-bb7e998e4bc9"}
+{"type": "turn.started"}
+{"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": "I’ll invoke the requested Paperly echo tool, then attempt the filesystem command and report the outcomes."}}
+{"type": "item.started", "item": {"id": "item_1", "type": "mcp_tool_call", "server": "paperly", "tool": "echo_page", "arguments": {"text": "alpha"}, "result": null, "error": null, "status": "in_progress"}}
+{"type": "item.completed", "item": {"id": "item_1", "type": "mcp_tool_call", "server": "paperly", "tool": "echo_page", "arguments": {"text": "alpha"}, "result": {"content": [{"type": "text", "text": "[page 1]\nalpha"}], "structured_content": null}, "error": null, "status": "completed"}}
+{"type": "item.completed", "item": {"id": "item_2", "type": "agent_message", "text": "1. Paperly echo result: `[page 1] alpha`\n2. I could not run `ls /`: this environment does not expose a shell-command execution tool."}}
+{"type": "turn.completed", "usage": {"input_tokens": 47726, "cached_input_tokens": 32000, "output_tokens": 297, "reasoning_output_tokens": 112}}

@@ -38,6 +38,7 @@ import {
   registerStarredPapers,
   unregisterStarredPapers,
 } from "./modules/starredPapers";
+import { initAgent, shutdownAgent } from "./modules/agent/agentService";
 import type { ScopeContext } from "./types/scope";
 
 let scopeChangeCallback: ((scope: ScopeContext | null) => void) | null = null;
@@ -88,6 +89,14 @@ async function onStartup() {
     registerStarredPapers();
   } catch (e) {
     ztoolkit.log("Starred papers init failed:", e);
+  }
+
+  // Paperly Agent's tool endpoint on the local server. Inert until a chat turn
+  // uses it, and it answers only requests carrying Paperly's own token.
+  try {
+    initAgent();
+  } catch (e) {
+    ztoolkit.log("Paperly Agent init failed:", e);
   }
 
   // Register preferences pane
@@ -241,6 +250,14 @@ async function onMainWindowUnload(win: Window): Promise<void> {
 }
 
 async function onShutdown(): Promise<void> {
+  // Stops any agent CLI still running and removes the endpoint, so no child
+  // process outlives the plugin.
+  try {
+    await shutdownAgent();
+  } catch (e) {
+    ztoolkit.log("Paperly Agent shutdown failed:", e);
+  }
+
   unregisterScopeNotifier();
   scopeChangeCallback = null;
   scopeChangeDispatcher.clear();

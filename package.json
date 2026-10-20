@@ -17,7 +17,8 @@
     "prefsPrefix": "extensions.zotero.zotero-webai"
   },
   "scripts": {
-    "build": "node scripts/scaffold-build.mjs && tsc --noEmit"
+    "build": "node scripts/scaffold-build.mjs && tsc --noEmit",
+    "test": "node --test \"test/agent/*.test.mjs\""
   },
   "dependencies": {
     "react": "^18.3.1",

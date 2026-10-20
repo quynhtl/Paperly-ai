@@ -38,3 +38,17 @@ pref("extensions.zotero.zotero-webai.floatingBot", true);
 pref("extensions.zotero.zotero-webai.floatingBotPosition", "");
 pref("extensions.zotero.zotero-webai.floatingBotCharacter", "");
 pref("extensions.zotero.zotero-webai.floatingBotCustomCharacters", "");
+
+// Paperly Agent: the Conversation view's chat with the user's own Claude Code
+// or Codex CLI. "agent" shows it; "web" keeps the older relay to the web page.
+pref("extensions.zotero.zotero-webai.agent.conversationMode", "agent");
+pref("extensions.zotero.zotero-webai.agent.engine", "claude");
+pref("extensions.zotero.zotero-webai.agent.claudeModel", "");
+pref("extensions.zotero.zotero-webai.agent.codexModel", "");
+pref("extensions.zotero.zotero-webai.agent.effort", "");
+pref("extensions.zotero.zotero-webai.agent.webSearch", true);
+// Full paths, for a CLI installed somewhere Paperly does not look.
+pref("extensions.zotero.zotero-webai.agent.claudePath", "");
+pref("extensions.zotero.zotero-webai.agent.codexPath", "");
+// The local endpoint's secret; generated on first use.
+pref("extensions.zotero.zotero-webai.agent.token", "");

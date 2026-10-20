@@ -38,6 +38,15 @@ declare namespace _ZoteroTypes {
       "floatingBotPosition": string;
       "floatingBotCharacter": string;
       "floatingBotCustomCharacters": string;
+      "agent.conversationMode": string;
+      "agent.engine": string;
+      "agent.claudeModel": string;
+      "agent.codexModel": string;
+      "agent.effort": string;
+      "agent.webSearch": boolean;
+      "agent.claudePath": string;
+      "agent.codexPath": string;
+      "agent.token": string;
     };
   }
 }
