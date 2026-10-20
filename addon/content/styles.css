@@ -878,3 +878,921 @@
 .paperly-star-cell[data-paperly-starred="1"] .paperly-star-glyph {
   color: #D9A521;
 }
+
+/* ------------------------------------------------------- Paperly Agent --
+   The Conversation view's agent chat (src/ui/agent/AgentConversation.tsx).
+   Colours come in as --pa-* variables set from the panel theme on the root,
+   so light and dark follow the panel's own toggle. Everything is scoped
+   under .paperly-agent and touches nothing else. */
+.paperly-agent {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--pa-bg);
+  color: var(--pa-text);
+  font-size: 13px;
+}
+.paperly-agent *,
+.paperly-agent *::before,
+.paperly-agent *::after {
+  box-sizing: border-box;
+}
+.paperly-agent button {
+  font: inherit;
+}
+
+.paperly-agent .pa-header {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 8px 10px 7px;
+  border-bottom: 1px solid var(--pa-border);
+}
+.paperly-agent .pa-header-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.paperly-agent .pa-header-spacer {
+  flex: 1 1 auto;
+}
+.paperly-agent .pa-engine {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 70%;
+  padding: 4px 9px 4px 8px;
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pa-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.paperly-agent .pa-engine:hover,
+.paperly-agent .pa-engine[aria-expanded="true"] {
+  background: var(--pa-hover);
+}
+.paperly-agent .pa-engine-name {
+  white-space: nowrap;
+}
+.paperly-agent .pa-engine-model {
+  overflow: hidden;
+  color: var(--pa-muted);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.paperly-agent .pa-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pa-muted);
+  opacity: 0.6;
+}
+.paperly-agent .pa-dot.is-ok {
+  background: var(--pa-ok);
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pa-ok) 22%, transparent);
+}
+.paperly-agent .pa-dot.is-bad {
+  background: var(--pa-bad);
+  opacity: 1;
+}
+.paperly-agent .pa-chevron {
+  flex: 0 0 auto;
+  color: var(--pa-muted);
+  transition: transform 160ms ease;
+}
+.paperly-agent .pa-chevron--open {
+  transform: rotate(90deg);
+}
+.paperly-agent .pa-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--pa-muted);
+  cursor: pointer;
+}
+.paperly-agent .pa-icon-button:hover:not(:disabled) {
+  background: var(--pa-hover);
+  color: var(--pa-text);
+}
+.paperly-agent .pa-icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.paperly-agent .pa-paper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  color: var(--pa-muted);
+  font-size: 11.5px;
+}
+.paperly-agent .pa-paper span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.paperly-agent .pa-paper svg {
+  flex: 0 0 auto;
+}
+.paperly-agent .pa-flash {
+  position: absolute;
+  right: 10px;
+  bottom: -14px;
+  z-index: 5;
+  max-width: calc(100% - 20px);
+  padding: 4px 10px;
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  background: var(--pa-bg);
+  box-shadow: var(--pa-shadow);
+  font-size: 11.5px;
+}
+
+.paperly-agent .pa-menu {
+  position: absolute;
+  top: 38px;
+  left: 10px;
+  z-index: 20;
+  width: min(300px, calc(100% - 20px));
+  padding: 6px;
+  border: 1px solid var(--pa-border);
+  border-radius: 12px;
+  background: var(--pa-bg);
+  box-shadow: var(--pa-dropdown-shadow);
+}
+.paperly-agent .pa-menu-label {
+  padding: 7px 6px 4px;
+  color: var(--pa-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.paperly-agent .pa-menu-engine {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  align-items: center;
+  column-gap: 6px;
+  width: 100%;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pa-text);
+  text-align: start;
+  cursor: pointer;
+}
+.paperly-agent .pa-menu-engine:hover {
+  background: var(--pa-hover);
+}
+.paperly-agent .pa-menu-engine.is-selected {
+  background: var(--pa-accent-soft);
+}
+.paperly-agent .pa-menu-engine-name {
+  font-weight: 600;
+}
+.paperly-agent .pa-menu-engine-status {
+  grid-column: 2;
+  color: var(--pa-muted);
+  font-size: 11px;
+}
+.paperly-agent .pa-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 6px 4px;
+}
+.paperly-agent .pa-segmented button {
+  padding: 2px 9px;
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pa-text);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.paperly-agent .pa-segmented button:hover {
+  background: var(--pa-hover);
+}
+.paperly-agent .pa-segmented button.is-selected {
+  border-color: transparent;
+  background: var(--pa-accent);
+  color: #fff;
+}
+.paperly-agent .pa-menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 6px 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.paperly-agent .pa-menu-divider {
+  height: 1px;
+  margin: 6px 0;
+  background: var(--pa-divider);
+}
+.paperly-agent .pa-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pa-text);
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+.paperly-agent .pa-menu-item:hover {
+  background: var(--pa-hover);
+}
+
+.paperly-agent .pa-transcript {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 14px 12px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.paperly-agent .pa-transcript::-webkit-scrollbar {
+  width: 6px;
+}
+.paperly-agent .pa-transcript::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: var(--pa-scroll-thumb);
+}
+.paperly-agent .pa-empty {
+  margin: auto 0;
+  padding: 24px 8px;
+  text-align: center;
+}
+.paperly-agent .pa-empty-title {
+  font-size: 15px;
+  font-weight: 650;
+}
+.paperly-agent .pa-empty-body {
+  max-width: 300px;
+  margin: 6px auto 0;
+  color: var(--pa-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.paperly-agent .pa-row--user {
+  display: flex;
+  justify-content: flex-end;
+}
+.paperly-agent .pa-bubble {
+  max-width: 88%;
+  padding: 7px 11px;
+  border: 1px solid var(--pa-user-border);
+  border-radius: 14px 14px 4px 14px;
+  background: var(--pa-user-bg);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+.paperly-agent .pa-row--assistant {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+  min-width: 0;
+}
+
+.paperly-agent .paperly-agent-markdown {
+  min-width: 0;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.paperly-agent .paperly-agent-markdown p {
+  margin: 0 0 8px;
+}
+.paperly-agent .paperly-agent-markdown > :last-child {
+  margin-bottom: 0;
+}
+.paperly-agent .paperly-agent-markdown h3,
+.paperly-agent .paperly-agent-markdown h4,
+.paperly-agent .paperly-agent-markdown h5 {
+  margin: 12px 0 5px;
+  line-height: 1.3;
+}
+.paperly-agent .paperly-agent-markdown h3 { font-size: 15px; }
+.paperly-agent .paperly-agent-markdown h4 { font-size: 14px; }
+.paperly-agent .paperly-agent-markdown h5 { font-size: 13px; }
+.paperly-agent .paperly-agent-markdown > h3:first-child,
+.paperly-agent .paperly-agent-markdown > h4:first-child {
+  margin-top: 0;
+}
+.paperly-agent .paperly-agent-markdown ul,
+.paperly-agent .paperly-agent-markdown ol {
+  margin: 4px 0 8px;
+  padding-inline-start: 20px;
+}
+.paperly-agent .paperly-agent-markdown li {
+  margin: 3px 0;
+}
+.paperly-agent .paperly-agent-markdown li > p {
+  margin: 0 0 4px;
+}
+.paperly-agent .paperly-agent-markdown blockquote {
+  margin: 6px 0 8px;
+  padding: 2px 10px;
+  border-inline-start: 3px solid var(--pa-border);
+  color: var(--pa-muted);
+}
+.paperly-agent .paperly-agent-markdown hr {
+  margin: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--pa-divider);
+}
+.paperly-agent .paperly-agent-inline-code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--pa-code-bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.paperly-agent .paperly-agent-link {
+  color: var(--pa-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.paperly-agent .paperly-agent-codeblock {
+  margin: 6px 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--pa-border);
+  border-radius: 8px;
+}
+.paperly-agent .paperly-agent-codeblock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px 3px 10px;
+  background: var(--pa-code-bg);
+  color: var(--pa-muted);
+  font-size: 11px;
+}
+.paperly-agent .paperly-agent-codeblock pre {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  user-select: text;
+}
+.paperly-agent .paperly-agent-ghost-button {
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--pa-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.paperly-agent .paperly-agent-ghost-button:hover {
+  background: var(--pa-hover);
+  color: var(--pa-text);
+}
+.paperly-agent .paperly-agent-table {
+  margin: 6px 0 10px;
+  overflow-x: auto;
+}
+.paperly-agent .paperly-agent-table table {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.paperly-agent .paperly-agent-table th,
+.paperly-agent .paperly-agent-table td {
+  padding: 4px 8px;
+  border: 1px solid var(--pa-border);
+  vertical-align: top;
+}
+.paperly-agent .paperly-agent-table th {
+  background: var(--pa-code-bg);
+  font-weight: 600;
+}
+.paperly-agent .paperly-agent-math-block {
+  display: block;
+  margin: 4px 0 8px;
+  padding: 4px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+}
+.paperly-agent .paperly-agent-math .katex {
+  font-size: 1.07em;
+}
+
+.paperly-agent .pa-toolrun {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.paperly-agent .pa-toolrun-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px 3px 8px;
+  border: 1px solid var(--pa-border);
+  border-radius: 999px;
+  background: var(--pa-panel);
+  color: var(--pa-muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.paperly-agent .pa-toolrun-head:hover {
+  background: var(--pa-hover);
+}
+.paperly-agent .pa-toolrun-head.is-error {
+  border-color: var(--pa-error-border);
+  color: var(--pa-error-text);
+}
+.paperly-agent .pa-toolrun-head.is-running {
+  color: var(--pa-text);
+}
+.paperly-agent .pa-toolrun-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.paperly-agent .pa-toolrun-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  color: var(--pa-ok);
+}
+.paperly-agent .is-error .pa-toolrun-icon,
+.paperly-agent .pa-tool--error .pa-toolrun-icon {
+  color: var(--pa-error-text);
+}
+.paperly-agent .is-running .pa-toolrun-icon,
+.paperly-agent .pa-tool--running .pa-toolrun-icon {
+  color: var(--pa-accent);
+}
+.paperly-agent .pa-toolrun-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin: 7px 0 2px 7px;
+  padding-inline-start: 11px;
+  border-inline-start: 2px solid var(--pa-border);
+}
+.paperly-agent .pa-tool-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.paperly-agent .pa-tool-output {
+  max-height: 140px;
+  margin: 4px 0 0 18px;
+  padding: 6px 8px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--pa-code-bg);
+  color: var(--pa-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.paperly-agent .pa-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.6px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: pa-spin 0.8s linear infinite;
+}
+
+.paperly-agent .pa-thinking-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pa-muted);
+  font-size: 12px;
+  font-style: italic;
+  cursor: pointer;
+}
+.paperly-agent .pa-thinking-head.is-live span {
+  animation: pa-pulse 1.4s ease-in-out infinite;
+}
+.paperly-agent .pa-thinking-body {
+  max-height: 240px;
+  margin-top: 5px;
+  padding: 4px 10px;
+  overflow: auto;
+  border-inline-start: 2px solid var(--pa-think-border);
+  color: var(--pa-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.paperly-agent .pa-approval {
+  padding: 10px 12px;
+  border: 1px solid var(--pa-accent);
+  border-radius: 12px;
+  background: var(--pa-bg);
+  box-shadow: var(--pa-shadow);
+}
+.paperly-agent .pa-approval--allowed {
+  border-color: var(--pa-ok);
+  box-shadow: none;
+}
+.paperly-agent .pa-approval--denied,
+.paperly-agent .pa-approval--expired {
+  border-color: var(--pa-border);
+  box-shadow: none;
+  opacity: 0.85;
+}
+.paperly-agent .pa-approval-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.paperly-agent .pa-approval-name {
+  margin-top: 2px;
+  color: var(--pa-muted);
+  font-size: 12px;
+}
+.paperly-agent .pa-approval-preview {
+  max-height: 220px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid var(--pa-border);
+  border-radius: 8px;
+  background: var(--pa-panel);
+  font-size: 12px;
+}
+.paperly-agent .pa-approval-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.paperly-agent .pa-approval-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pa-muted);
+  font-size: 12px;
+}
+.paperly-agent .pa-approval--allowed .pa-approval-status {
+  color: var(--pa-ok);
+}
+
+.paperly-agent .pa-button {
+  padding: 4px 12px;
+  border: 1px solid var(--pa-border);
+  border-radius: 8px;
+  background: var(--pa-bg);
+  color: var(--pa-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.paperly-agent .pa-button:hover:not(:disabled) {
+  background: var(--pa-hover);
+}
+.paperly-agent .pa-button--primary {
+  border-color: transparent;
+  background: var(--pa-accent);
+  color: #fff;
+}
+.paperly-agent .pa-button--primary:hover:not(:disabled) {
+  background: var(--pa-accent);
+  filter: brightness(1.08);
+}
+.paperly-agent .pa-button--small {
+  padding: 2px 9px;
+  font-size: 11.5px;
+}
+.paperly-agent .pa-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.paperly-agent .pa-link-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pa-accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+.paperly-agent .pa-ghost-icon {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--pa-muted);
+  cursor: pointer;
+}
+.paperly-agent .pa-ghost-icon:hover {
+  background: var(--pa-hover);
+  color: var(--pa-text);
+}
+
+.paperly-agent .pa-notice {
+  padding: 5px 9px;
+  border: 1px solid var(--pa-warn-border);
+  border-radius: 8px;
+  background: var(--pa-warn-bg);
+  color: var(--pa-warn-text);
+  font-size: 12px;
+}
+.paperly-agent .pa-typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pa-muted);
+  font-size: 12px;
+}
+.paperly-agent .pa-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.paperly-agent .pa-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pa-accent);
+  animation: pa-dot 1.2s ease-in-out infinite;
+}
+.paperly-agent .pa-dots i:nth-child(2) { animation-delay: 0.15s; }
+.paperly-agent .pa-dots i:nth-child(3) { animation-delay: 0.3s; }
+.paperly-agent .pa-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--pa-error-border);
+  border-radius: 8px;
+  background: var(--pa-error-bg);
+  color: var(--pa-error-text);
+}
+.paperly-agent .pa-error--soft {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pa-muted);
+  font-size: 12px;
+}
+.paperly-agent .pa-error-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.paperly-agent .pa-error-detail {
+  color: var(--pa-text);
+  font-size: 12px;
+  opacity: 0.85;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.paperly-agent .pa-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+  color: var(--pa-muted);
+  font-size: 11px;
+}
+.paperly-agent .pa-meta-stopped {
+  color: var(--pa-warn-text);
+}
+
+.paperly-agent .pa-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--pa-border);
+  border-radius: 12px;
+  background: var(--pa-panel);
+}
+.paperly-agent .pa-setup--ok {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  border-color: var(--pa-ok);
+}
+.paperly-agent .pa-setup-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.paperly-agent .pa-setup-body {
+  color: var(--pa-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.paperly-agent .pa-setup-hint {
+  color: var(--pa-muted);
+  font-size: 11px;
+}
+.paperly-agent .pa-setup-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.paperly-agent .pa-command {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: var(--pa-code-bg);
+}
+.paperly-agent .pa-command code {
+  flex: 1 1 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  word-break: break-all;
+  user-select: all;
+}
+.paperly-agent .pa-code-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+.paperly-agent .pa-code-input {
+  flex: 1 1 170px;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--pa-input-border);
+  border-radius: 8px;
+  background: var(--pa-input-bg);
+  color: var(--pa-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.paperly-agent .pa-device-code {
+  align-self: stretch;
+  padding: 8px;
+  border: 1px dashed var(--pa-border);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: center;
+  user-select: all;
+}
+
+.paperly-agent .pa-composer {
+  flex: 0 0 auto;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--pa-border);
+  background: var(--pa-bg);
+}
+.paperly-agent .pa-quick {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.paperly-agent .pa-quick-button {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border: 1px solid var(--pa-quick-border);
+  border-radius: 999px;
+  background: var(--pa-quick-bg);
+  color: var(--pa-quick-text);
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.paperly-agent .pa-quick-button:hover:not(:disabled) {
+  background: var(--pa-quick-hover);
+}
+.paperly-agent .pa-quick-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.paperly-agent .pa-input {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--pa-input-border);
+  border-radius: 16px;
+  background: var(--pa-input-bg);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.paperly-agent .pa-input:focus-within {
+  border-color: var(--pa-accent);
+  box-shadow: 0 0 0 3px var(--pa-focus);
+}
+.paperly-agent .pa-input textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 20px;
+  max-height: 168px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  /* Gecko draws a native field (its own box and focus ring) otherwise; the
+     rounded composer around it is the field. */
+  appearance: none;
+  -moz-appearance: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  background: transparent;
+  color: var(--pa-text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: none;
+}
+.paperly-agent .pa-send {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pa-accent);
+  color: #fff;
+  cursor: pointer;
+}
+.paperly-agent .pa-send:disabled {
+  background: var(--pa-border);
+  color: var(--pa-muted);
+  cursor: default;
+}
+.paperly-agent .pa-send--stop {
+  background: var(--pa-text);
+  color: var(--pa-bg);
+}
+
+.paperly-agent .pa-input textarea:focus,
+.paperly-agent .pa-input textarea:focus-visible {
+  border: 0;
+  box-shadow: none;
+  outline: none;
+}
+.paperly-agent .pa-code-input:focus {
+  border-color: var(--pa-accent);
+  outline: none;
+}
+
+@keyframes pa-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pa-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+  40% { transform: translateY(-3px); opacity: 1; }
+}
+@keyframes pa-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}

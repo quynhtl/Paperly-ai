@@ -21,6 +21,7 @@
     "test": "node --test \"test/agent/*.test.mjs\""
   },
   "dependencies": {
+    "katex": "^0.16.47",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zotero-plugin-toolkit": "^5.1.2"

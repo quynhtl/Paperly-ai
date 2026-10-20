@@ -127,6 +127,7 @@ async function onStartup() {
 }
 
 const STYLESHEET_LINK_ID = "zotero-webai-stylesheet";
+const KATEX_STYLESHEET_LINK_ID = "zotero-webai-katex-stylesheet";
 
 // Per-window, not nsIStyleSheetService: loadAndRegisterSheet applies the sheet to
 // EVERY document in the process -- every Zotero window, the preferences window,
@@ -146,10 +147,24 @@ function loadStylesheet(win: Window) {
   link.rel = "stylesheet";
   link.href = `chrome://${addon.data.config.addonRef}/content/styles.css`;
   (doc.documentElement || doc.body)?.appendChild(link);
+
+  // KaTeX's own sheet, for the agent chat's math. Its rules are all under
+  // .katex, so it styles nothing else in the window.
+  if (!doc.getElementById(KATEX_STYLESHEET_LINK_ID)) {
+    const katexLink = doc.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "link",
+    ) as HTMLLinkElement;
+    katexLink.id = KATEX_STYLESHEET_LINK_ID;
+    katexLink.rel = "stylesheet";
+    katexLink.href = `chrome://${addon.data.config.addonRef}/content/katex/katex.min.css`;
+    (doc.documentElement || doc.body)?.appendChild(katexLink);
+  }
 }
 
 function unloadStylesheet(win: Window) {
   win.document.getElementById(STYLESHEET_LINK_ID)?.remove();
+  win.document.getElementById(KATEX_STYLESHEET_LINK_ID)?.remove();
 }
 
 async function onMainWindowLoad(win: Window): Promise<void> {

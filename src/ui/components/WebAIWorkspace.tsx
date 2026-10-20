@@ -15,6 +15,9 @@ import {
 import type { ScopeContext } from "../../types/scope";
 import { getPref, setPref } from "../../utils/prefs";
 import { getRequestedLanguage, isChineseLocale } from "../../utils/locale";
+import { getAgentSettings, setAgentSettings } from "../../modules/agent/agentService";
+import { AgentConversation } from "../agent/AgentConversation";
+import type { AgentIncomingPrompt } from "../agent/AgentConversation";
 import { type SidebarTheme } from "../theme";
 import { typography } from "../typography";
 import {
@@ -45,9 +48,14 @@ export interface IncomingWebPrompt {
   label: string;
   prompt: string;
   sourceMode?: PromptSourceMode;
+  // What Explain/Ask was pressed on, for Paperly Agent, which words its own
+  // prompt rather than using `prompt`.
+  selection?: { action: "explain" | "ask"; text: string; page: number };
 }
 
-export type WebAIPanelView = "web" | "chat";
+// "agent" is only ever reported up to the shell: it is the Conversation view
+// while it shows Paperly Agent. The workspace's own state is web or chat.
+export type WebAIPanelView = "web" | "chat" | "agent";
 
 interface WebAIWorkspaceProps {
   contextSummary: AssembledContext | null;
@@ -824,6 +832,16 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
   // provider page nor the transcript usable, and "Hide Web" plus the drag
   // splitter were already an awkward two-mechanism version of this.
   const [panelView, setPanelView] = useState<WebAIPanelView>("web");
+  // Conversation shows Paperly Agent -- a chat with the user's own Claude Code
+  // or Codex CLI -- unless the user switched it back to the older relay that
+  // types into the provider's web page. Remembered in a pref.
+  const [agentMode, setAgentModeState] = useState(() => getAgentSettings().mode === "agent");
+  const [agentIncoming, setAgentIncoming] = useState<AgentIncomingPrompt | null>(null);
+  const setAgentMode = (on: boolean) => {
+    setAgentSettings({ mode: on ? "agent" : "web" });
+    setAgentModeState(on);
+  };
+  const showAgent = panelView === "chat" && agentMode;
   const [zaiLoginMode, setZaiLoginMode] = useState(false);
   const [chatSessions, setChatSessions] = useState<WebAIChatSession[]>(() =>
     INITIAL_CHAT_SESSIONS,
@@ -1217,8 +1235,8 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
   }, [isDark]);
 
   useEffect(() => {
-    onPanelViewChange?.(panelView);
-  }, [onPanelViewChange, panelView]);
+    onPanelViewChange?.(panelView === "chat" && agentMode ? "agent" : panelView);
+  }, [agentMode, onPanelViewChange, panelView]);
 
   // Frames are the only thing here that owns an OS resource, so they get an
   // unmount-only teardown -- the effect above runs on every provider switch
@@ -1245,6 +1263,21 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
       return;
     }
 
+    // Paperly Agent takes Explain/Ask itself, and shows the Conversation view
+    // so the answer is on screen.
+    if (agentMode) {
+      const selection = incomingPrompt.selection;
+      setAgentIncoming({
+        id: incomingPrompt.id,
+        action: selection ? selection.action : "prompt",
+        text: selection ? selection.text : incomingPrompt.prompt,
+        page: selection?.page,
+      });
+      setPanelView("chat");
+      onIncomingPromptHandled?.(incomingPrompt.id);
+      return;
+    }
+
     // Not routed to the look-up box: buildReaderActionDraft wraps the excerpt
     // in a full instruction ("explain this excerpt from page N: ...") , which is
     // a prompt, not a search term. Look-up providers follow the raw selection
@@ -1255,7 +1288,7 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
     setStatus(text.status.incomingReady(incomingPrompt.label, service.label));
     setIsError(false);
     onIncomingPromptHandled?.(incomingPrompt.id);
-  }, [incomingPrompt, onIncomingPromptHandled, service, text]);
+  }, [agentMode, incomingPrompt, onIncomingPromptHandled, service, text]);
 
   useEffect(() => {
     if (!shouldUseMCPInConversation(settings)) {
@@ -2428,7 +2461,7 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
       {/* Only when there is something to say. In the web view the page is the
           whole surface; in Conversation the default line is the slash-command
           hint that belongs to the composer. */}
-      {!isZAILoginMode && (status || panelView === "chat") && (
+      {!isZAILoginMode && !showAgent && (status || panelView === "chat") && (
         <div
           className="zotero-webai-status"
           role="status"
@@ -2573,6 +2606,9 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
           >
             {text.labels.conversation}
           </button>
+          {/* Both act on the web page, which Paperly Agent's view does not show. */}
+          {!showAgent && (
+            <>
           <button
             style={{
               ...styles.miniButton,
@@ -2602,7 +2638,9 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
           >
             {text.buttons.openExternal}
           </button>
-          {panelView === "chat" && (
+            </>
+          )}
+          {panelView === "chat" && !agentMode && (
             <>
               <button
                 style={{
@@ -2715,7 +2753,29 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
         </div>
       )}
 
-      {!isZAILoginMode && !isLookupService && panelView === "chat" && (
+      {!isZAILoginMode && showAgent && (
+        <AgentConversation
+          incoming={agentIncoming}
+          isDark={isDark}
+          isZh={isChineseLocale(language)}
+          onIncomingHandled={(id) =>
+            setAgentIncoming((current) => (current?.id === id ? null : current))
+          }
+          onUseWebMode={() => {
+            // The provider's own page: what "use the web page" asks for, and
+            // the older Conversation view relays to it.
+            setAgentMode(false);
+            if (service.kind !== "chat") {
+              onSelectService(lastChatService);
+            }
+            setPanelView("web");
+          }}
+          scope={scope}
+          theme={theme}
+        />
+      )}
+
+      {!isZAILoginMode && !isLookupService && panelView === "chat" && !agentMode && (
         <div
           className="zotero-webai-chat"
           style={{
@@ -2737,6 +2797,18 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
               {text.labels.conversation}
             </span>
             <div style={styles.executionHeaderActions}>
+              <button
+                onClick={() => setAgentMode(true)}
+                style={{
+                  ...styles.inlineActionButton,
+                  borderColor: theme.buttonBorder,
+                  color: theme.buttonText,
+                }}
+                title="Chat with your own Claude Code or Codex instead"
+                type="button"
+              >
+                Paperly Agent
+              </button>
               <span style={{ ...styles.executionMeta, color: theme.mutedText }}>
                 {text.status.turnsSessions(transcriptTurns.length, chatSessions.length)}
               </span>
@@ -2840,7 +2912,7 @@ export const WebAIWorkspace: React.FC<WebAIWorkspaceProps> = ({
         </div>
       )}
 
-      {!isZAILoginMode && !isLookupService && panelView === "chat" && (
+      {!isZAILoginMode && !isLookupService && panelView === "chat" && !agentMode && (
         <div
           className="zotero-webai-composer"
           style={{

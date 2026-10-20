@@ -271,6 +271,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: detail.action === "explain" ? "Selection explain" : "Selection ask",
           prompt,
           sourceMode: "selection",
+          selection: {
+            action: detail.action === "explain" ? "explain" : "ask",
+            text: detail.text,
+            page: detail.page,
+          },
         });
         debugLog.info("sidebar.readerAction.webPrompt", {
           action: detail.action,
