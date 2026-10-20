@@ -237,7 +237,10 @@ function dispatchReaderAction(
 
   void (async () => {
     try {
-      await UIFactory.openSidebarFromReaderToolbar(win);
+      // Open, not toggle: with the column already showing, the toolbar's
+      // toggle closed it, and the Explain/Ask that followed went nowhere.
+      // The look-up actions below already open it this way.
+      await openWebAIColumn(win);
       await delayForReaderPanelListener(win);
     } catch (error) {
       debugLog.error("reader.action.openPanel.error", error, {
