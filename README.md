@@ -31,6 +31,17 @@ picker, five colour families, and a format bar over the selection.
 **Look-up on selected text** — translate, dictionary, and search — from the reader's
 selection popup.
 
+**Paperly Agent** in the Conversation view: a chat with your own **Claude
+Code** or **Codex**, installed on your computer and signed in with your own
+Claude or ChatGPT account (sign-in happens on Anthropic's or OpenAI's own
+page; Paperly never sees a password or a token). It reads the pages it needs
+from the paper you have open, your selection, your highlights and your
+library, can search the web and arXiv / Semantic Scholar, and renders
+Markdown and math. It saves a note only after you press Allow, and **Save
+chat as note** keeps a conversation. Each paper has its own conversation.
+The CLI gets no shell and no file access: only Paperly's tools and web
+search. See [`docs/AGENT-MODE-NOTES.md`](docs/AGENT-MODE-NOTES.md).
+
 **Slash commands** in the chat box: `/pdf` attaches the current PDF or item full
 text, `/websearch` runs a search and attaches readable results, `/zotero-mcp` loads a
 local MCP tool catalogue and feeds real tool results back into the web chat. Custom
@@ -41,6 +52,7 @@ skills are configured in settings.
 ```bash
 npm install
 npm run build          # produces .scaffold/build/Paperly.AI-<version>.xpi
+npm test               # Paperly Agent's parsers, MCP server, Markdown, prompts
 ```
 
 Install the `.xpi` through **Tools → Add-ons → Install Add-on From File**.
@@ -65,6 +77,7 @@ Notes on how each piece works and why it was built that way are in [`docs/`](doc
 | [`ADDING-A-PROVIDER.md`](docs/ADDING-A-PROVIDER.md) | how to add an AI provider |
 | [`TESTING.md`](docs/TESTING.md) | how this is tested |
 | [`PAPERLY-FORK.md`](docs/PAPERLY-FORK.md) | what this fork changed |
+| [`AGENT-MODE-NOTES.md`](docs/AGENT-MODE-NOTES.md) | Paperly Agent: how a turn runs, its safety boundary, what was verified |
 
 ## Credits
 
