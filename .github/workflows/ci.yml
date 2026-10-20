@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # npm test imports .ts files through Node's own type stripping
+          node-version: 24
+          cache: npm
+      # Two dev dependencies (epubjs, zotero-pdfjs-types) are public GitHub
+      # repos that the lockfile names by ssh://, and the runner has no SSH key
+      - run: git config --global url."https://github.com/".insteadOf ssh://git@github.com/
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npm test
