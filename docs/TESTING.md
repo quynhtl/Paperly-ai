@@ -4,8 +4,8 @@
 
 | Path | Role |
 | --- | --- |
-| `Paperly/zotero-client` | Zotero source build — the runtime. Do not edit. |
-| `Paperly/Zotero-WebAI` | This plugin. All development happens here. |
+| `Paperly/paperly-client` | The app (Paperly, a Zotero fork) — the runtime. Plugin work does not edit it. |
+| `Paperly/paperly-plugin` | This plugin. All plugin development happens here. |
 | `Paperly/research-ai-reader` | Unused duplicate Zotero clone. Ignore. |
 
 ## One-time setup
@@ -13,7 +13,7 @@
 The Zotero runtime must be built once:
 
 ```bash
-cd ~/Documents/code/Paperly/zotero-client
+cd ~/Documents/code/Paperly/paperly-client
 ./app/scripts/check_requirements   # needs git-lfs, wget; MAR/AWS failures are fine
 npm install
 ./app/scripts/build_and_run        # builds and launches
@@ -26,7 +26,7 @@ local development.
 Plugin dependencies:
 
 ```bash
-cd ~/Documents/code/Paperly/Zotero-WebAI
+cd ~/Documents/code/Paperly/paperly-plugin
 npm install
 ```
 
@@ -36,12 +36,13 @@ Testing happens in an **isolated dev profile**, never the one you use daily. A
 crashing build must not disturb real work.
 
 ```bash
-cd ~/Documents/code/Paperly/Zotero-WebAI
+cd ~/Documents/code/Paperly/paperly-plugin
 ./scripts/dev-reload.sh            # build + install into the dev profile
 ./scripts/dev-reload.sh --launch   # ...and start the dev instance
 ```
 
-Dev profile: `~/Library/Application Support/Zotero/Profiles/paperly-dev`
+Dev profile: `~/Library/Application Support/Paperly/Profiles/paperly-dev` (the
+script falls back to the pre-migration `Zotero/Profiles/paperly-dev` if only that exists)
 Dev data dir: `~/Zotero-paperly-dev` (a separate, empty library)
 
 Override with `PAPERLY_DEV_PROFILE`, `PAPERLY_DEV_DATA`, `ZOTERO_SRC`.
@@ -90,9 +91,9 @@ Check plugin state at any time:
 ```bash
 python3 -c "
 import json
-p='$HOME/Library/Application Support/Zotero/Profiles/paperly-dev/extensions.json'
+p='$HOME/Library/Application Support/Paperly/Profiles/paperly-dev/extensions.json'
 for a in json.load(open(p))['addons']:
-    if 'webai' in (a.get('id') or ''):
+    if (a.get('id') or '') in ('paperly-ai@paperly.org', 'zotero-webai@lineex.dev'):
         print({k: a.get(k) for k in ['id','version','active','userDisabled','appDisabled']})
 "
 ```

@@ -344,7 +344,7 @@ with it, and -- only if it is a new tag -- add that tag to `BLOCK_TAGS` in
 `noteBlocks.ts` so the sanitizer stops dropping it.
 
 Check the tag against Zotero's note editor first:
-`zotero-client/note-editor/src/core/schema/nodes.js` is the whole list of what
+`paperly-client/note-editor/src/core/schema/nodes.js` is the whole list of what
 Zotero can parse back. A note is HTML, not Markdown, so anything can be
 *stored* -- but anything outside that schema is dropped the first time someone
 edits the note in Zotero, which is a silent way to lose someone's work.
@@ -382,7 +382,7 @@ and then thrown away — or worse, shown and then thrown away:
    write to the ONE tag the note is stored as.
 3. `MARK_LABELS` in the format bar, which is the button.
 
-Check the tag against `zotero-client/note-editor/src/core/schema/marks.js`
+Check the tag against `paperly-client/note-editor/src/core/schema/marks.js`
 first — the same rule as blocks. `strong`, `em`, `u`, `s`, `code`, `sub`, `sup`,
 `a[href]` and a `<span>` carrying `color` or `background-color` are what Zotero
 can parse back; anything else is dropped the first time the note is opened

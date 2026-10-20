@@ -1,6 +1,8 @@
 # Paperly fork of Zotero WebAI
 
-Status 2026-09-27. Branch `feat/paperly-claude-gemini`.
+Begun 2026-09-27 on the branch `feat/paperly-claude-gemini`, whose commits are now
+on `paperly-history` (local only). The published branch is `paperly-public`.
+Commit ids for the app below are on `paperly-client`'s `paperly` branch.
 
 This file is the *why*: what was tried, what broke, and what must not be put
 back. For *where do I change this*, read `NOTE.md`. For *does it still work*,
@@ -747,7 +749,7 @@ them when disabled rather than greying them out. They act on text, and an image
 or ink annotation has none — the handler returns early there and adds nothing.
 
 Changing the click itself would mean patching `pdf-view.js` in the
-`zotero-client` fork, and it would cost the ability to select, move or delete a
+`paperly-client` fork, and it would cost the ability to select, move or delete a
 highlight by clicking it. Not worth it for a reading workspace.
 
 ### One browser per provider, hidden rather than rebuilt
@@ -1064,7 +1066,7 @@ ancestor over 240px wide. Which node it hit depended on render timing.
 The host is now `#zotero-tabs-toolbar` — the static XUL `<hbox>` beside the tab
 bar that already holds Zotero's own tabs-menu, progress-queue and sync buttons.
 Nothing owns it (`grep -rn "zotero-tabs-toolbar" chrome/ scss/` in
-`zotero-client` returns four hits and zero JS), and Zotero itself puts a plain
+`paperly-client` returns four hits and zero JS), and Zotero itself puts a plain
 HTML `<div class="zotero-tb-separator">` in there, so an HTML child is the
 established pattern. The button is inserted before `#zotero-pq-buttons`, which
 is static markup and therefore always present.
@@ -1278,7 +1280,7 @@ bleaching her hair.
 
 ## Cutting Paperly loose from Zotero's servers
 
-Three commits in `zotero-client`: `648e19588`, `c8cecb4e8`, `a8bad650c`.
+Three commits in `paperly-client`: `7a439c97b`, `cbec5b341`, `d8d39280f`.
 
 The starting point is worth stating, because it makes the rest small: **Zotero
 already runs completely without an account.** With no user ID it mints a local
@@ -1423,8 +1425,11 @@ Recorded so nobody re-runs these experiments.
    captures. Claude, Gemini and NotebookLM have no equivalents.
    `ADDING-A-PROVIDER.md` describes the capability record that should replace
    these branches before a ninth one is added.
-4. **One 9,900-line file.** `WebAIWorkspace.tsx` holds nearly all behaviour.
-5. **No tests.** `npx tsc --noEmit` is the only automated check.
+4. **One 10,700-line file.** `WebAIWorkspace.tsx` holds nearly all behaviour.
+   New features go in their own module instead (Paperly Agent is the model).
+5. **Few tests.** `npm test` covers Paperly Agent's pure modules (`test/agent/`);
+   everything else relies on `tsc --noEmit` and the manual checklist in
+   `TESTING.md`.
 6. **The pad's menus stay open if you press the rendered page.** The page is a
    frame inside the reader's `<browser>`, so neither the chrome document nor
    the reader's own hears the press. Pressing the reader's toolbar, Zotero's

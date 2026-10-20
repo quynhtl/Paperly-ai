@@ -101,8 +101,8 @@ types: `["library", "collection", "search"]` -- where papers live, and not feeds
 
 ### 4. A column in front of Title takes Title's furniture with it
 
-Both Paperly columns sit before Title, which needed a change in `zotero-client`
-(`b86c3f988`) before it was safe.
+Both Paperly columns sit before Title, which needed a change in `paperly-client`
+(`0c76c1268`) before it was safe.
 
 Four things hung off whichever visible column had the lowest ordinal: the item
 type icon, the `.cell-text` wrapper, the expand arrow and the depth indent. That
